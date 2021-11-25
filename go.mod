@@ -8,7 +8,10 @@ require (
 	gorm.io/gorm v1.22.2
 )
 
-require github.com/mattn/go-colorable v0.1.9 // indirect
+require (
+	github.com/mattn/go-colorable v0.1.9 // indirect
+	gopkg.in/ini.v1 v1.64.0 // indirect
+)
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
