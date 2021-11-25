@@ -2,9 +2,9 @@
 
 ## Introduction
 
-Spellbook is a CLI utility to store references for shell commands (aka spells). 
+Spellbook is a CLI utility to store references for shell commands (aka spells). This is a CRU app. No "D" since spells cannot be removed from a fabtasy realm (afaik).
 
-## Usage
+## Basic Usage
 
 ### Searching for Spells
 
@@ -32,3 +32,7 @@ $ Spellbook find tag <tag>
 ID  Description                   Contents                                Language  Tags
 3   find process bound to a port  netstat -tulpn | egrep "<port number>"  bash      shell,networking
 ```
+
+## Advanced Usage
+
+How advanced do you really think this can get?
