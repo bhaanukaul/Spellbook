@@ -36,3 +36,7 @@ ID  Description                   Contents                                Langua
 ## Advanced Usage
 
 How advanced do you really think this can get?
+
+## Testing
+
+It works on my machine ¯\\\_(ツ)_/¯
