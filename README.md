@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Spellbook is a CLI utility to store references for shell commands (aka spells). This is a CRU app. No "D" since spells cannot be removed from a fabtasy realm (afaik).
+Spellbook is a CLI utility to store references for shell commands (aka spells). This is a CRU (Create, Read, Update) app. No "D" since spells cannot be removed from a fantasy realm (afaik).
 
 ## Basic Usage
 
