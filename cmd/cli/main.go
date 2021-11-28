@@ -49,7 +49,7 @@ func main() {
 						Action: func(c *cli.Context) error {
 							tbl := GenerateTableHeader()
 
-							fmt.Printf("args %s with len %d", c.Args(), c.Args().Len())
+							// fmt.Printf("args %s with len %d", c.Args(), c.Args().Len())
 
 							spells, err := Spell.FindSpellsByTag(c.Args().First())
 							if err != nil {
@@ -69,7 +69,7 @@ func main() {
 						Usage:   "Return spell based on a ID in database.\nSpellbook find tag",
 						Action: func(c *cli.Context) error {
 
-							fmt.Printf("args %s with len %d", c.Args(), c.Args().Len())
+							// fmt.Printf("args %s with len %d", c.Args(), c.Args().Len())
 							tbl := GenerateTableHeader()
 
 							int_id, err := strconv.Atoi(c.Args().First())
@@ -117,17 +117,17 @@ func main() {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					fmt.Printf("Flags from add language: %s\ncontent: %s\ndescription: %s\ntags: %s",
+					log.Printf("Flags from add language: %s\ncontent: %s\ndescription: %s\ntags: %s",
 						c.String("language"), c.String("content"), c.String("description"), c.String("tags"))
 					tbl := GenerateTableHeader()
 
-					spell_id, err := Spell.CreateSpell(c.String("language"), c.String("content"), c.String("description"), c.String("tags"))
+					newSpell, err := Spell.CreateSpell(c.String("language"), c.String("content"), c.String("description"), c.String("tags"))
 					if err != nil {
 						fmt.Errorf("%s", err)
 						return err
 					}
 
-					spell, err := Spell.GetSpellByID(spell_id)
+					spell, err := Spell.GetSpellByID(newSpell.ID)
 					if err != nil {
 						fmt.Errorf("%s", err)
 						return err
@@ -167,7 +167,7 @@ func main() {
 					if err != nil {
 						log.Fatal(err)
 					}
-					fmt.Printf("Created DB at %s\n", spellBookDB)
+					log.Printf("Created DB at %s\n", spellBookDB)
 					emptyDB.Close()
 
 					spellbookConfigFile := spellbookConfigDir + "/" + configFileName
@@ -175,7 +175,7 @@ func main() {
 					if err != nil {
 						log.Fatal(err)
 					}
-					fmt.Printf("Created config at %s\n", spellbookConfigFile)
+					// fmt.Printf("Created config at %s\n", spellbookConfigFile)
 					emptyConfig.Close()
 
 					cfg, err := ini.Load(spellbookConfigFile)
