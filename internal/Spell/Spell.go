@@ -11,10 +11,10 @@ var tableName = "spells"
 
 type Spell struct {
 	ID          int    `json:"id,omitempty"`
-	Language    string `json:"language"`
-	Contents    string `json:"contents"`
-	Description string `json:"description"`
-	Tags        string `json:"tags"`
+	Language    string `json:"language,omitempty"`
+	Contents    string `json:"contents,omitempty"`
+	Description string `json:"description,omitempty"`
+	Tags        string `json:"tags,omitempty"`
 }
 
 func GetSpell(c *gin.Context) {
@@ -60,10 +60,9 @@ func GetSpellByID(spell_id int) (Spell, error) {
 	return result, nil
 }
 
-func UpdateSpell(c *gin.Context) {
-	return
-}
-
-func DeleteSpell(c *gin.Context) {
-	return
+func UpdateSpell(spell_id int, spell Spell) (Spell, error) {
+	db := Utils.GetDatabaseConnection()
+	var spellToUpdate Spell
+	db.Table(tableName).Model(&spellToUpdate).Where("id = ?", spell_id).Updates(spell)
+	return spellToUpdate, nil
 }

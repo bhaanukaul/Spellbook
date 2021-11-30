@@ -17,7 +17,6 @@ func main() {
 	router.GET("/spells", GetAllSpells)
 	router.POST("/spell", CreateSpell)
 	router.PATCH("/spell/:id", UpdateSpell)
-	router.DELETE("/spell/:id", DeleteSpell)
 
 	router.Run("localhost:8081")
 }
@@ -73,9 +72,16 @@ func CreateSpell(c *gin.Context) {
 }
 
 func UpdateSpell(c *gin.Context) {
+	var spellToUpdate Spell.Spell
+	if err := c.BindJSON(&spellToUpdate); err != nil {
+		c.JSON(http.StatusBadRequest, "Invalid Request Body")
+		return
+	}
+	spell_id_param := c.Param("id")
+	spell_id, err := strconv.Atoi(spell_id_param)
+	if err != nil {
+		panic(err)
+	}
 
-}
-
-func DeleteSpell(c *gin.Context) {
-
+	Spell.UpdateSpell(spell_id, spellToUpdate)
 }
