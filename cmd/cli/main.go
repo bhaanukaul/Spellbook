@@ -31,7 +31,7 @@ func main() {
 
 					spells, err := Spell.GetAllSpells()
 					if err != nil {
-						fmt.Errorf("%s", err)
+						log.Fatalf("err: %s", err)
 						return err
 					}
 					for _, spell := range spells {
@@ -53,7 +53,7 @@ func main() {
 
 							spells, err := Spell.FindSpellsByTag(c.Args().First())
 							if err != nil {
-								fmt.Errorf("%s", err)
+								log.Fatalf("%s", err)
 								return err
 							}
 							for _, spell := range spells {
@@ -74,12 +74,12 @@ func main() {
 
 							int_id, err := strconv.Atoi(c.Args().First())
 							if err != nil {
-								fmt.Errorf("%s", err)
+								log.Fatalf("%s", err)
 								return err
 							}
 							spell, err := Spell.GetSpellByID(int_id)
 							if err != nil {
-								fmt.Errorf("%s", err)
+								log.Fatalf("%s", err)
 								return err
 							}
 							tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
@@ -123,13 +123,13 @@ func main() {
 
 					newSpell, err := Spell.CreateSpell(c.String("language"), c.String("content"), c.String("description"), c.String("tags"))
 					if err != nil {
-						fmt.Errorf("%s", err)
+						log.Fatalf("%s", err)
 						return err
 					}
 
 					spell, err := Spell.GetSpellByID(newSpell.ID)
 					if err != nil {
-						fmt.Errorf("%s", err)
+						log.Fatalf("%s", err)
 						return err
 					}
 					tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
