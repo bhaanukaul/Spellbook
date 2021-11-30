@@ -19,6 +19,6 @@ build-darwin:
 		-o bin/Spellbook-darwin cmd/cli/main.go
 
 build-win:
-	GOOS=windows GOARCH=amd64 go build \
+	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build \
 		-o bin/Spellbook-win cmd/cli/main.go
 
