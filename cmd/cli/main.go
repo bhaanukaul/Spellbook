@@ -191,6 +191,89 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name:    "update",
+				Aliases: []string{"u"},
+				Usage:   "updates spell in spellbook",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "language",
+						Aliases: []string{"l"},
+						Usage:   "language of the spell",
+					},
+					&cli.StringFlag{
+						Name:    "content",
+						Aliases: []string{"c"},
+						Usage:   "content of the spell",
+					},
+					&cli.StringFlag{
+						Name:    "description",
+						Aliases: []string{"d"},
+						Usage:   "what does the spell do.",
+					},
+					&cli.StringFlag{
+						Name:    "tags",
+						Aliases: []string{"t"},
+						Usage:   "associated tags for the spell",
+					},
+					&cli.IntFlag{
+						Name:     "id",
+						Usage:    "ID of the spell to update",
+						Required: true,
+					},
+				},
+				Action: func(c *cli.Context) error {
+					tbl := GenerateTableHeader()
+
+					var spellToUpdate Spell.Spell
+					spell_language := c.String("language")
+					// fmt.Printf("Language: %s", c.String("language"))
+					spell_content := c.String("content")
+					spell_description := c.String("description")
+					spell_tags := c.String("tags")
+					// int_id, err := strconv.Atoi(c.Args().First())
+					spell_id := c.Int("id")
+
+					if spell_language != "" {
+						spellToUpdate.Language = spell_language
+					}
+
+					if spell_content != "" {
+						spellToUpdate.Contents = spell_content
+					}
+
+					if spell_description != "" {
+						spellToUpdate.Description = spell_description
+					}
+
+					if spell_tags != "" {
+						spell, err := Spell.GetSpellByID(spell_id)
+						if err != nil {
+							log.Fatalf("%s", err)
+							return err
+						}
+						newTags := spell.Tags + "," + spell_tags
+						spellToUpdate.Tags = newTags
+					}
+					fmt.Printf("Updating %d with %#v\n", spell_id, spellToUpdate)
+
+					_, err := Spell.UpdateSpell(spell_id, spellToUpdate)
+					if err != nil {
+						log.Fatalf("%s", err)
+						return err
+					}
+
+					updatedSpell, err := Spell.GetSpellByID(spell_id)
+					if err != nil {
+						log.Fatalf("%s", err)
+						return err
+					}
+					tbl.AddRow(updatedSpell.ID, updatedSpell.Description, updatedSpell.Contents,
+						updatedSpell.Language, updatedSpell.Tags)
+					tbl.Print()
+					return nil
+				},
+			},
 		},
 	}
 

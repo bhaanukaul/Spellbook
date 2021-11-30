@@ -2,7 +2,6 @@ package Spell
 
 import (
 	"Spellbook/internal/Utils"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -56,7 +55,7 @@ func GetSpellByID(spell_id int) (Spell, error) {
 	var result Spell
 	// db.Table("Spells").Where("tags LIKE ?", "%?%", tags).Find(&dbResults)
 	db.Table(tableName).Find(&result, spell_id)
-	fmt.Printf("Got spell by id: %#v", result)
+	// fmt.Printf("Got spell by id: %#v", result)
 	return result, nil
 }
 
