@@ -6,6 +6,22 @@ Spellbook is a CLI utility to store references for shell commands (aka spells). 
 
 ## Basic Usage
 
+### Initialize Spellbook
+
+Intialize the Spellbook with the default values. 
+You can specify an alternative filename for the SQLite DB located at $HOME/.config/Spellbook/Spellbook.db. 
+This will also create a config file in the same directory.
+
+```shell
+$ Spellbook init [--name]
+```
+
+### Create a Spell
+
+```shell
+$ Spellbook add --language <language> --content "<spell content>" --description "<description of the spell" --tags tag1,tag2,tag3
+```
+
 ### Searching for Spells
 
 #### Get all spells in your Spellbook
