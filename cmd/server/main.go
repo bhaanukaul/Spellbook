@@ -2,6 +2,7 @@ package main
 
 import (
 	"Spellbook/internal/Spell"
+	"Spellbook/internal/Utils"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -17,8 +18,16 @@ func main() {
 	router.GET("/spells", GetAllSpells)
 	router.POST("/spell", CreateSpell)
 	router.PATCH("/spell/:id", UpdateSpell)
-
+	router.GET("/ping", Ping)
 	router.Run("localhost:8081")
+}
+
+func Ping(c *gin.Context) {
+	ping := Utils.SpellbookPing{
+		Version: "1.0",
+	}
+
+	c.JSON(http.StatusOK, ping)
 }
 
 func GetSpell(c *gin.Context) {

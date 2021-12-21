@@ -3,11 +3,17 @@ package main
 import (
 	"Spellbook/internal/Spell"
 	"Spellbook/internal/Utils"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
@@ -154,6 +160,56 @@ func main() {
 						Usage:   "Name of the Spellbook file. Default is Spellbook.db",
 					},
 				},
+				Subcommands: []*cli.Command{
+					{
+						Name:  "remote",
+						Usage: "initialize local Spellbook to sync with remote Spellbook server.",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "url",
+								Aliases:  []string{"u"},
+								Usage:    "Username for remote server",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     "username",
+								Aliases:  []string{},
+								Usage:    "Username for remote server",
+								Required: false,
+							},
+						},
+						Action: func(c *cli.Context) error {
+							// cfg.Section("").Key("remote").SetValue("")
+							// Validate the remote url is a valid spellbook server
+							remoteUrl := c.String("url")
+							fmt.Println("Checking if remote server is up and running: " + remoteUrl)
+							resp, err := http.Get(remoteUrl + "/ping")
+							if err != nil {
+								log.Fatal(err)
+							}
+							var ping Utils.SpellbookPing
+							defer resp.Body.Close()
+							body, err := io.ReadAll(resp.Body)
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							err = json.Unmarshal(body, &ping)
+
+							if resp.StatusCode != http.StatusOK || err != nil {
+								log.Fatal("Error with remote Spellbook url: " + err.Error())
+								return nil
+							}
+
+							if ping.Version != "1.0" {
+								log.Fatal("Something not right")
+								return nil
+							}
+							fmt.Println("Looks like we're good to go!")
+							return nil
+						},
+					},
+				},
 				Action: func(c *cli.Context) error {
 					userHome, err := os.UserHomeDir()
 					spellbookFileName := c.String("name")
@@ -161,6 +217,12 @@ func main() {
 					if err != nil {
 						log.Fatal(err)
 					}
+
+					user, err := user.Current()
+					if err != nil {
+						log.Fatal(err)
+					}
+					username := user.Username
 					spellbookConfigDir := filepath.Join(userHome, ".config", "Spellbook")
 					err = os.MkdirAll(spellbookConfigDir, os.ModePerm)
 					if err != nil {
@@ -187,7 +249,14 @@ func main() {
 						fmt.Printf("Fail to read file: %v", err)
 						os.Exit(1)
 					}
+
+					now := time.Now()
+					secs := now.Unix()
+					userHashPlain := fmt.Sprintf("%s-%d", username, secs)
+					userHash := fmt.Sprintf("%x", sha256.Sum256([]byte(userHashPlain)))
 					cfg.Section("").Key("spellbookdb").SetValue(spellBookDB)
+					cfg.Section("").Key("username").SetValue(username)
+					cfg.Section("").Key("user_hash").SetValue(userHash)
 					cfg.SaveTo(spellbookConfigFile)
 
 					db := Utils.GetDatabaseConnection()

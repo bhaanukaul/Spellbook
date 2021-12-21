@@ -10,6 +10,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type SpellbookPing struct {
+	Version string
+}
+
 func GetDatabaseConnection() (db *gorm.DB) {
 	spellbookDB := GetSpellbookDBLocation()
 	db, err := gorm.Open(sqlite.Open(spellbookDB), &gorm.Config{})
