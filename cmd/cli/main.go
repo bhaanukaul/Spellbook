@@ -212,11 +212,12 @@ func main() {
 				},
 				Action: func(c *cli.Context) error {
 					userHome, err := os.UserHomeDir()
-					spellbookFileName := c.String("name")
-					configFileName := "Spellbook.ini"
 					if err != nil {
 						log.Fatal(err)
 					}
+
+					spellbookFileName := c.String("name")
+					configFileName := "Spellbook.ini"
 
 					user, err := user.Current()
 					if err != nil {
@@ -342,7 +343,7 @@ func main() {
 						return err
 					}
 					tbl.AddRow(updatedSpell.ID, updatedSpell.Description, updatedSpell.Contents,
-						updatedSpell.Language, updatedSpell.Tags)
+						updatedSpell.Language, updatedSpell.Tags, updatedSpell.Author)
 					tbl.Print()
 					return nil
 				},

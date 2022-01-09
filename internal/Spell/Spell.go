@@ -2,8 +2,6 @@ package Spell
 
 import (
 	"Spellbook/internal/Utils"
-
-	"github.com/gin-gonic/gin"
 )
 
 var tableName = "spells"
@@ -13,11 +11,8 @@ type Spell struct {
 	Language    string `json:"language,omitempty"`
 	Contents    string `json:"contents,omitempty"`
 	Description string `json:"description,omitempty"`
+	Author      string `json:"author,omitempty"`
 	Tags        string `json:"tags,omitempty"`
-}
-
-func GetSpell(c *gin.Context) {
-	return
 }
 
 func CreateSpell(language string, contents string, description string, tags string) (Spell, error) {

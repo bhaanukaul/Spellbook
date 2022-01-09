@@ -1,24 +1,41 @@
 
 
-all: test build
+all: test build-cli build-server
 
 test:
 
-build: build-linux build-darwin-arm build-darwin build-win
+build-server: build-linux-server build-darwin-arm-server build-darwin-server build-win-server
 
-build-linux:
+build-cli: build-linux-cli build-darwin-arm-cli build-darwin-cli build-win-cli
+
+build-linux-cli:
 	GOOS=linux GOARCH=amd64 go build \
-		-o bin/Spellbook-linux cmd/cli/main.go
+		-o bin/cli/Spellbook-linux cmd/cli/main.go
 
-build-darwin-arm:
+build-darwin-arm-cli:
 	GOOS=darwin GOARCH=arm64 go build \
-		-o bin/Spellbook-darwin-arm cmd/cli/main.go
+		-o bin/cli/Spellbook-darwin-arm cmd/cli/main.go
 
-build-darwin:
+build-darwin-cli:
 	GOOS=darwin GOARCH=amd64 go build \
-		-o bin/Spellbook-darwin cmd/cli/main.go
+		-o bin/cli/Spellbook-darwin cmd/cli/main.go
 
-build-win:
+build-win-cli:
 	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build \
-		-o bin/Spellbook-win cmd/cli/main.go
+		-o bin/cli/Spellbook-win cmd/cli/main.go
 
+build-linux-server:
+	GOOS=linux GOARCH=amd64 go build \
+		-o bin/server/Spellbook-Server-linux cmd/server/main.go
+
+build-darwin-arm-server:
+	GOOS=darwin GOARCH=arm64 go build \
+		-o bin/server/Spellbook-Server-darwin-arm cmd/server/main.go
+
+build-darwin-server:
+	GOOS=darwin GOARCH=amd64 go build \
+		-o bin/server/Spellbook-Server-darwin cmd/server/main.go
+
+build-win-server:
+	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build \
+		-o bin/server/Spellbook-Server-win cmd/server/main.go
