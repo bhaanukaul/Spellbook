@@ -17,7 +17,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
-	"gopkg.in/ini.v1"
 
 	"github.com/urfave/cli/v2"
 )
@@ -245,20 +244,13 @@ func main() {
 					// fmt.Printf("Created config at %s\n", spellbookConfigFile)
 					emptyConfig.Close()
 
-					cfg, err := ini.Load(spellbookConfigFile)
-					if err != nil {
-						fmt.Printf("Fail to read file: %v", err)
-						os.Exit(1)
-					}
-
 					now := time.Now()
 					secs := now.Unix()
 					userHashPlain := fmt.Sprintf("%s-%d", username, secs)
 					userHash := fmt.Sprintf("%x", sha256.Sum256([]byte(userHashPlain)))
-					cfg.Section("").Key("spellbookdb").SetValue(spellBookDB)
-					cfg.Section("").Key("username").SetValue(username)
-					cfg.Section("").Key("user_hash").SetValue(userHash)
-					cfg.SaveTo(spellbookConfigFile)
+					Utils.AddKVToConfig(spellbookConfigFile, "spellbookdb", spellBookDB, "")
+					Utils.AddKVToConfig(spellbookConfigFile, "username", username, "")
+					Utils.AddKVToConfig(spellbookConfigFile, "user_hash", userHash, "")
 
 					db := Utils.GetDatabaseConnection()
 					db.Migrator().CreateTable(&Spell.Spell{})

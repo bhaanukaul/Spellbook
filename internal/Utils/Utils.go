@@ -38,3 +38,28 @@ func GetSpellbookDBLocation() string {
 	spellbook := cfg.Section("").Key("spellbookdb").String()
 	return spellbook
 }
+
+func Error(msg string, err error) {
+	fmt.Printf("%s, %v", msg, err)
+	os.Exit(1)
+}
+
+func AddKVToConfig(cf string, key string, value string, section string) {
+	cfg, err := ini.Load(cf)
+	if err != nil {
+		Error("Failed to read file", err)
+	}
+
+	cfg.Section(section).Key(key).SetValue(value)
+	cfg.SaveTo(cf)
+}
+
+func GetKVFromConfig(cf string, key string, section string) string {
+	cfg, err := ini.Load(cf)
+	if err != nil {
+		Error("Failed to read file", err)
+	}
+
+	value := cfg.Section(section).Key(key).String()
+	return value
+}

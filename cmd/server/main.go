@@ -23,31 +23,28 @@ func main() {
 			{
 				Name:    "init",
 				Aliases: []string{},
-				Usage:   "Initialize the Spellbook server.",
-				Action: func(c *cli.Context) error {
-
-					return nil
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "port",
+						Aliases: []string{"p"},
+						Value:   "8081",
+						Usage:   "Port to run the spellbook server.",
+					},
 				},
+				Usage:  "Initialize the Spellbook server. Creates config file in directory the command was ran.",
+				Action: SetupServer,
 			},
+			// {
+			// 	Name:    "add",
+			// 	Aliases: []string{},
+			// 	Usage:   "Add a remote server.",
+			// 	Action:  AddRemoteServer,
+			// },
 			{
 				Name:    "start",
 				Aliases: []string{},
 				Usage:   "Start the Spellbook server.",
-				Action: func(c *cli.Context) error {
-					router := gin.Default()
-
-					api := router.Group("/api")
-					{
-						api.GET("/spell/:id", GetSpell)
-						api.GET("/spells", GetAllSpells)
-						api.POST("/spell", CreateSpell)
-						api.PATCH("/spell/:id", UpdateSpell)
-					}
-					router.GET("/ping", Ping)
-
-					router.Run("localhost:8081")
-					return nil
-				},
+				Action:  StartServer,
 			},
 		},
 	}
@@ -59,27 +56,73 @@ func main() {
 
 }
 
-func SetupServer() {
-	userHome, err := os.UserHomeDir()
+// func AddRemoteServer(c *cli.Context) error {
+// 	if c.Args().Len() != 2 {
+// 		Utils.Error("\"spellbook-server add\" requires 2 arguments.", nil)
+// 	}
+// 	alias := c.Args().Get(0)
+// 	spellbookJson := c.Args().Get(1)
+// 	splitSpellbook := strings.Split(spellbookJson, ".")
+// 	extension := splitSpellbook[len(splitSpellbook)-1]
+// 	if extension != "json" {
+// 		Utils.Error("Remote needs to be a json file.", nil)
+// 	}
+
+// 	configDir := Utils.GetConfigDir()
+
+// 	return nil
+// }
+
+func StartServer(c *cli.Context) error {
+	router := gin.Default()
+
+	api := router.Group("/api")
+	{
+		api.GET("/spell/:id", GetSpell)
+		api.GET("/spells", GetAllSpells)
+		api.POST("/spell", CreateSpell)
+		api.PATCH("/spell/:id", UpdateSpell)
+		api.POST("/spellbook", AddSpellBook)
+	}
+	router.GET("/ping", Ping)
+	configFile := GetServerConfig()
+	port := Utils.GetKVFromConfig(configFile, "http_port", "server")
+	router.Run("0.0.0.0:" + port)
+	return nil
+}
+
+func SetupServer(c *cli.Context) error {
+	var serverHome string
+	var err error
+	serverHome, err = os.Getwd()
+	port := c.String("port")
 	if err != nil {
 		log.Fatal(err)
+		return nil
 	}
 
-	configFileName := "Spellbook-server.ini"
-	spellbookConfigDir := filepath.Join(userHome, ".config", "Spellbook")
+	configFileName := "spellbook-server.ini"
+	spellbookConfigDir := GetServerConfigDir(serverHome)
 	err = os.MkdirAll(spellbookConfigDir, os.ModePerm)
 	if err != nil {
-		log.Fatal(err)
+		Utils.Error("Error", err)
+	}
+
+	spellbookRemotesDir := GetServerRemotesDir(serverHome)
+	err = os.MkdirAll(spellbookRemotesDir, os.ModePerm)
+	if err != nil {
+		Utils.Error("Error", err)
 	}
 
 	spellbookConfigFile := spellbookConfigDir + "/" + configFileName
 	emptyConfig, err := os.Create(spellbookConfigFile)
 
 	if err != nil {
-		log.Fatal(err)
+		Utils.Error("Error", err)
 	}
 	emptyConfig.Close()
-
+	Utils.AddKVToConfig(spellbookConfigFile, "http_port", port, "server")
+	return nil
 }
 
 func Ping(c *gin.Context) {
@@ -153,4 +196,33 @@ func UpdateSpell(c *gin.Context) {
 	}
 
 	Spell.UpdateSpell(spell_id, spellToUpdate)
+}
+
+func AddSpellBook(c *gin.Context) {
+
+}
+
+func GetServerConfig() string {
+	var serverHome string
+	var err error
+	serverHome, err = os.Getwd()
+
+	if err != nil {
+		Utils.Error("Error getting working directory", err)
+	}
+	configFileName := "spellbook-server.ini"
+	spellbookConfigDir := GetServerConfigDir(serverHome)
+
+	spellbookConfigFile := spellbookConfigDir + "/" + configFileName
+	return spellbookConfigFile
+}
+
+func GetServerConfigDir(basedir string) string {
+	spellbookConfigDir := filepath.Join(basedir, "config")
+	return spellbookConfigDir
+}
+
+func GetServerRemotesDir(basedir string) string {
+	spellbookRemotesDir := filepath.Join(basedir, "remotes")
+	return spellbookRemotesDir
 }
