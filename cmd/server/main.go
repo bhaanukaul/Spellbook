@@ -17,6 +17,12 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+type RemoteSection struct {
+	Alias       string `json:"alias"`
+	Description string `json:"description"`
+	Url         string `json:"url"`
+}
+
 func main() {
 	app := &cli.App{
 		EnableBashCompletion: true,
@@ -40,8 +46,28 @@ func main() {
 			{
 				Name:    "add",
 				Aliases: []string{},
-				Usage:   "Add a remote server.",
-				Action:  AddRemoteServer,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "alias",
+						Aliases:  []string{"a"},
+						Required: true,
+						Usage:    "One word alias for the remote spellbook.",
+					},
+					&cli.StringFlag{
+						Name:     "url",
+						Aliases:  []string{"u"},
+						Required: true,
+						Usage:    "Url of the remote spellbook.",
+					},
+					&cli.StringFlag{
+						Name:     "description",
+						Aliases:  []string{"d"},
+						Required: true,
+						Usage:    "Description for the remote spellbook.",
+					},
+				},
+				Usage:  "Add a remote server.",
+				Action: AddRemoteServer,
 			},
 			{
 				Name:    "start",
@@ -97,6 +123,8 @@ func AddRemoteServer(c *cli.Context) error {
 
 	configDir := GetServerConfig()
 	Utils.AddKVToConfig(configDir, "url", spellbookUrl, section)
+	Utils.AddKVToConfig(configDir, "alias", alias, section)
+
 	return nil
 }
 
@@ -147,7 +175,14 @@ func GetAllSpellbooks(c *gin.Context) {
 	}
 
 	names := cfg.ChildSections("remotes")
-	c.JSON(http.StatusOK, names)
+	var returnSb []RemoteSection
+	for _, n := range names {
+		toAdd := RemoteSection{
+			Alias: n.Key("alias").String(), Description: n.Key("description").String(), Url: n.Key("url").String(),
+		}
+		returnSb = append(returnSb, toAdd)
+	}
+	c.JSON(http.StatusOK, returnSb)
 }
 
 func AddSpellBook(c *gin.Context) {

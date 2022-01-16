@@ -3,7 +3,7 @@ module Spellbook
 go 1.17
 
 require (
-	github.com/gin-gonic/gin v1.7.6
+	github.com/gin-gonic/gin v1.7.7
 	gopkg.in/ini.v1 v1.64.0
 	gorm.io/driver/sqlite v1.2.3
 	gorm.io/gorm v1.22.2
