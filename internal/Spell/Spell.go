@@ -13,6 +13,7 @@ type Spell struct {
 	Description string `json:"description,omitempty"`
 	Author      string `json:"author,omitempty"`
 	Tags        string `json:"tags,omitempty"`
+	Remote      string `json:"remote,omitempty"` // This will be the alias to the remote DB server. Can find actual url in the config dir.
 }
 
 func CreateSpell(language string, contents string, description string, tags string) (Spell, error) {

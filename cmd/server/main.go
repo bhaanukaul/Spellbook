@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Spellbook/internal/Constants"
 	"Spellbook/internal/Spell"
 	"Spellbook/internal/Utils"
 	"fmt"
@@ -9,9 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/urfave/cli/v2"
+	"gopkg.in/ini.v1"
 )
 
 func main() {
@@ -34,12 +37,12 @@ func main() {
 				Usage:  "Initialize the Spellbook server. Creates config file in directory the command was ran.",
 				Action: SetupServer,
 			},
-			// {
-			// 	Name:    "add",
-			// 	Aliases: []string{},
-			// 	Usage:   "Add a remote server.",
-			// 	Action:  AddRemoteServer,
-			// },
+			{
+				Name:    "add",
+				Aliases: []string{},
+				Usage:   "Add a remote server.",
+				Action:  AddRemoteServer,
+			},
 			{
 				Name:    "start",
 				Aliases: []string{},
@@ -56,23 +59,9 @@ func main() {
 
 }
 
-// func AddRemoteServer(c *cli.Context) error {
-// 	if c.Args().Len() != 2 {
-// 		Utils.Error("\"spellbook-server add\" requires 2 arguments.", nil)
-// 	}
-// 	alias := c.Args().Get(0)
-// 	spellbookJson := c.Args().Get(1)
-// 	splitSpellbook := strings.Split(spellbookJson, ".")
-// 	extension := splitSpellbook[len(splitSpellbook)-1]
-// 	if extension != "json" {
-// 		Utils.Error("Remote needs to be a json file.", nil)
-// 	}
-
-// 	configDir := Utils.GetConfigDir()
-
-// 	return nil
-// }
-
+/*
+CLI Functions
+*/
 func StartServer(c *cli.Context) error {
 	router := gin.Default()
 
@@ -83,11 +72,31 @@ func StartServer(c *cli.Context) error {
 		api.POST("/spell", CreateSpell)
 		api.PATCH("/spell/:id", UpdateSpell)
 		api.POST("/spellbook", AddSpellBook)
+		api.GET("/spellbooks", GetAllSpellbooks)
 	}
 	router.GET("/ping", Ping)
 	configFile := GetServerConfig()
 	port := Utils.GetKVFromConfig(configFile, "http_port", "server")
 	router.Run("0.0.0.0:" + port)
+	return nil
+}
+
+func AddRemoteServer(c *cli.Context) error {
+	if c.Args().Len() != 2 {
+		Utils.Error("\"spellbook-server add\" requires 2 arguments.", nil)
+	}
+	alias := c.Args().Get(0)
+	spellbookUrl := c.Args().Get(1)
+	splitSpellbook := strings.Split(spellbookUrl, ".")
+	extension := splitSpellbook[len(splitSpellbook)-1]
+	if extension != "json" {
+		Utils.Error("Remote needs to be a json file.", nil)
+	}
+
+	section := "remotes." + alias
+
+	configDir := GetServerConfig()
+	Utils.AddKVToConfig(configDir, "url", spellbookUrl, section)
 	return nil
 }
 
@@ -125,37 +134,39 @@ func SetupServer(c *cli.Context) error {
 	return nil
 }
 
-func Ping(c *gin.Context) {
-	ping := Utils.SpellbookPing{
-		Version: "1.0",
+/*
+API Functions
+*/
+
+func GetAllSpellbooks(c *gin.Context) {
+	cd := GetServerConfig()
+
+	cfg, err := ini.Load(cd)
+	if err != nil {
+		Utils.Error("Cannot load config.", err)
 	}
 
-	c.JSON(http.StatusOK, ping)
+	names := cfg.ChildSections("remotes")
+	c.JSON(http.StatusOK, names)
 }
 
-func GetSpell(c *gin.Context) {
+func AddSpellBook(c *gin.Context) {
+
+}
+
+func UpdateSpell(c *gin.Context) {
+	var spellToUpdate Spell.Spell
+	if err := c.BindJSON(&spellToUpdate); err != nil {
+		c.JSON(http.StatusBadRequest, "Invalid Request Body")
+		return
+	}
 	spell_id_param := c.Param("id")
 	spell_id, err := strconv.Atoi(spell_id_param)
 	if err != nil {
 		panic(err)
 	}
-	spell, err := Spell.GetSpellByID(spell_id)
-	if err != nil {
-		panic(err)
-	}
-	if spell.ID == 0 {
-		c.JSON(http.StatusNotFound, nil)
-		return
-	}
-	c.JSON(http.StatusOK, spell)
-}
 
-func GetAllSpells(c *gin.Context) {
-	spells, err := Spell.GetAllSpells()
-	if err != nil {
-		panic(err)
-	}
-	c.JSON(http.StatusOK, spells)
+	Spell.UpdateSpell(spell_id, spellToUpdate)
 }
 
 func CreateSpell(c *gin.Context) {
@@ -183,24 +194,42 @@ func CreateSpell(c *gin.Context) {
 
 }
 
-func UpdateSpell(c *gin.Context) {
-	var spellToUpdate Spell.Spell
-	if err := c.BindJSON(&spellToUpdate); err != nil {
-		c.JSON(http.StatusBadRequest, "Invalid Request Body")
-		return
-	}
+func GetSpell(c *gin.Context) {
 	spell_id_param := c.Param("id")
 	spell_id, err := strconv.Atoi(spell_id_param)
 	if err != nil {
 		panic(err)
 	}
-
-	Spell.UpdateSpell(spell_id, spellToUpdate)
+	spell, err := Spell.GetSpellByID(spell_id)
+	if err != nil {
+		panic(err)
+	}
+	if spell.ID == 0 {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+	c.JSON(http.StatusOK, spell)
 }
 
-func AddSpellBook(c *gin.Context) {
-
+func GetAllSpells(c *gin.Context) {
+	spells, err := Spell.GetAllSpells()
+	if err != nil {
+		panic(err)
+	}
+	c.JSON(http.StatusOK, spells)
 }
+
+func Ping(c *gin.Context) {
+	ping := Utils.SpellbookPing{
+		Version: "1.0",
+	}
+
+	c.JSON(http.StatusOK, ping)
+}
+
+/*
+Util Functions
+*/
 
 func GetServerConfig() string {
 	var serverHome string
@@ -210,10 +239,9 @@ func GetServerConfig() string {
 	if err != nil {
 		Utils.Error("Error getting working directory", err)
 	}
-	configFileName := "spellbook-server.ini"
 	spellbookConfigDir := GetServerConfigDir(serverHome)
 
-	spellbookConfigFile := spellbookConfigDir + "/" + configFileName
+	spellbookConfigFile := spellbookConfigDir + "/" + Constants.ConfigFile
 	return spellbookConfigFile
 }
 
