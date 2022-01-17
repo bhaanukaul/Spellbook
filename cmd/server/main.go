@@ -67,7 +67,7 @@ func main() {
 					},
 				},
 				Usage:  "Add a remote server.",
-				Action: AddRemoteServer,
+				Action: AddRemoteSpellbookCli,
 			},
 			{
 				Name:    "start",
@@ -97,7 +97,7 @@ func StartServer(c *cli.Context) error {
 		api.GET("/spells", GetAllSpells)
 		api.POST("/spell", CreateSpell)
 		api.PATCH("/spell/:id", UpdateSpell)
-		api.POST("/spellbook", AddSpellBook)
+		api.POST("/spellbook", AddRemoteSpellbookApi)
 		api.GET("/spellbooks", GetAllSpellbooks)
 	}
 	router.GET("/ping", Ping)
@@ -107,24 +107,20 @@ func StartServer(c *cli.Context) error {
 	return nil
 }
 
-func AddRemoteServer(c *cli.Context) error {
-	if c.Args().Len() != 2 {
+func AddRemoteSpellbookCli(c *cli.Context) error {
+	if c.Args().Len() != 3 {
 		Utils.Error("\"spellbook-server add\" requires 2 arguments.", nil)
 	}
-	alias := c.Args().Get(0)
-	spellbookUrl := c.Args().Get(1)
+	alias := c.String("alias")
+	spellbookUrl := c.String("url")
+	description := c.String("description")
 	splitSpellbook := strings.Split(spellbookUrl, ".")
 	extension := splitSpellbook[len(splitSpellbook)-1]
 	if extension != "json" {
 		Utils.Error("Remote needs to be a json file.", nil)
 	}
 
-	section := "remotes." + alias
-
-	configDir := GetServerConfig()
-	Utils.AddKVToConfig(configDir, "url", spellbookUrl, section)
-	Utils.AddKVToConfig(configDir, "alias", alias, section)
-
+	AddRemoteServer(alias, spellbookUrl, description)
 	return nil
 }
 
@@ -185,8 +181,15 @@ func GetAllSpellbooks(c *gin.Context) {
 	c.JSON(http.StatusOK, returnSb)
 }
 
-func AddSpellBook(c *gin.Context) {
+func AddRemoteSpellbookApi(c *gin.Context) {
+	var remoteSection RemoteSection
+	if err := c.BindJSON(&remoteSection); err != nil {
+		Utils.Error("", err)
+		return
+	}
 
+	AddRemoteServer(remoteSection.Alias, remoteSection.Url, remoteSection.Description)
+	c.JSON(http.StatusCreated, remoteSection)
 }
 
 func UpdateSpell(c *gin.Context) {
@@ -288,4 +291,15 @@ func GetServerConfigDir(basedir string) string {
 func GetServerRemotesDir(basedir string) string {
 	spellbookRemotesDir := filepath.Join(basedir, "remotes")
 	return spellbookRemotesDir
+}
+
+func AddRemoteServer(alias string, url string, description string) {
+
+	section := "remotes." + alias
+
+	configDir := GetServerConfig()
+	Utils.AddKVToConfig(configDir, "url", url, section)
+	Utils.AddKVToConfig(configDir, "alias", alias, section)
+	Utils.AddKVToConfig(configDir, "description", description, section)
+
 }
