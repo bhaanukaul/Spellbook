@@ -70,6 +70,19 @@ func main() {
 				Action: AddRemoteSpellbookCli,
 			},
 			{
+				Name:    "sync-remote",
+				Aliases: []string{},
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "alias",
+						Aliases: []string{"a"},
+						Usage:   "Alias to sync to local server.",
+					},
+				},
+				Usage:  "Sync a remote Spellbook file to the local server. If no alias is provided, then command will sync all aliases in config.",
+				Action: SyncRemoteSpellbook,
+			},
+			{
 				Name:    "start",
 				Aliases: []string{},
 				Usage:   "Start the Spellbook server.",
@@ -88,6 +101,30 @@ func main() {
 /*
 CLI Functions
 */
+
+func SyncRemoteSpellbook(c *cli.Context) error {
+	alias := c.String("alias")
+	log.Printf("alias: %s", alias)
+	if alias != "" {
+		SyncRemote(alias)
+		return nil
+	}
+	config := GetServerConfig()
+	cfg, err := ini.Load(config)
+	if err != nil {
+		Utils.Error("", err)
+	}
+	parent, err := cfg.GetSection(Constants.RemotesParent)
+	if err != nil {
+		Utils.Error("", err)
+	}
+	sections := parent.ChildSections()
+	for _, s := range sections {
+		SyncRemote(s.Name())
+	}
+	return nil
+}
+
 func StartServer(c *cli.Context) error {
 	router := gin.Default()
 
@@ -97,7 +134,7 @@ func StartServer(c *cli.Context) error {
 		api.GET("/spells", GetAllSpells)
 		api.POST("/spell", CreateSpell)
 		api.PATCH("/spell/:id", UpdateSpell)
-		api.POST("/spellbook", AddRemoteSpellbookApi)
+		// api.POST("/spellbook", AddRemoteSpellbookApi)
 		api.GET("/spellbooks", GetAllSpellbooks)
 	}
 	router.GET("/ping", Ping)
@@ -296,10 +333,33 @@ func GetServerRemotesDir(basedir string) string {
 func AddRemoteServer(alias string, url string, description string) {
 
 	section := "remotes." + alias
-
 	configDir := GetServerConfig()
+
+	checkSection := Utils.DoesSectionExist(configDir, section)
+	log.Printf("%t", checkSection)
 	Utils.AddKVToConfig(configDir, "url", url, section)
 	Utils.AddKVToConfig(configDir, "alias", alias, section)
 	Utils.AddKVToConfig(configDir, "description", description, section)
 
 }
+
+func SyncRemote(alias string) {
+	config := GetServerConfig()
+	cfg, err := ini.Load(config)
+	if err != nil {
+		Utils.Error("", err)
+	}
+	sectionExists := Utils.DoesSectionExist(config, alias)
+	if !sectionExists {
+		return
+	}
+	section, err := cfg.GetSection(alias)
+	if err != nil {
+		Utils.Error("", err)
+	}
+	remote := section.Key("url")
+	log.Printf("remote: %s", remote)
+
+}
+
+// func CreateServerFiles(alias, url)

@@ -1,0 +1,16 @@
+[
+    {
+        "language": "docker",
+        "contents": "docker ps -a",
+        "description": "Get all containers on the host. No matter the current status.",
+        "author": "Bhaanu",
+        "tags": "docker,containers,shell"
+    },
+    {
+        "language": "docker",
+        "contents": "docker exec -it <container id or name> /bin/bash",
+        "description": "Get a bash shell into the container to run shell commands in the container.",
+        "author": "Bhaanu",
+        "tags": "docker,containers,"
+    }
+]
