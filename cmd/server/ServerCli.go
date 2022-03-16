@@ -39,6 +39,10 @@ func SyncRemoteSpellbook(c *cli.Context) error {
 	return nil
 }
 
+/*
+Initial Server funcs
+*/
+
 func StartServer(c *cli.Context) error {
 	router := gin.Default()
 
@@ -55,23 +59,6 @@ func StartServer(c *cli.Context) error {
 	configFile := GetServerConfig()
 	port := Utils.GetKVFromConfig(configFile, "http_port", "server")
 	router.Run("0.0.0.0:" + port)
-	return nil
-}
-
-func AddRemoteSpellbookCli(c *cli.Context) error {
-	if c.Args().Len() != 3 {
-		Utils.Error("\"spellbook-server add\" requires 2 arguments.", nil)
-	}
-	alias := c.String("alias")
-	spellbookUrl := c.String("url")
-	description := c.String("description")
-	splitSpellbook := strings.Split(spellbookUrl, ".")
-	extension := splitSpellbook[len(splitSpellbook)-1]
-	if extension != "json" {
-		Utils.Error("Remote needs to be a json file.", nil)
-	}
-
-	AddRemoteServer(alias, spellbookUrl, description)
 	return nil
 }
 
@@ -106,5 +93,26 @@ func SetupServer(c *cli.Context) error {
 	}
 	emptyConfig.Close()
 	Utils.AddKVToConfig(spellbookConfigFile, "http_port", port, "server")
+	return nil
+}
+
+/*
+Server Management
+*/
+
+func AddRemoteSpellbookCli(c *cli.Context) error {
+	if c.Args().Len() != 3 {
+		Utils.Error("\"spellbook-server add\" requires 2 arguments.", nil)
+	}
+	alias := c.String("alias")
+	spellbookUrl := c.String("url")
+	description := c.String("description")
+	splitSpellbook := strings.Split(spellbookUrl, ".")
+	extension := splitSpellbook[len(splitSpellbook)-1]
+	if extension != "json" {
+		Utils.Error("Remote needs to be a json file.", nil)
+	}
+
+	AddRemoteServer(alias, spellbookUrl, description)
 	return nil
 }
