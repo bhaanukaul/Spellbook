@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/blevesearch/bleve/v2"
 	"gopkg.in/ini.v1"
 )
 
@@ -68,4 +69,11 @@ func SyncRemote(alias string) {
 	remote := section.Key("url")
 	log.Printf("remote: %s", remote)
 
+}
+
+func GetBleveIndex() bleve.Index {
+	config := GetServerConfig()
+	index_name := Utils.GetKVFromConfig(config, "index", "server")
+	index, _ := bleve.Open(index_name)
+	return index
 }

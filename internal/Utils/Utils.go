@@ -81,6 +81,10 @@ func GetKVFromConfig(cf string, key string, section string) string {
 	return value
 }
 
+func GetBleveIndex() {
+
+}
+
 func InsertJsonToDB(objs []interface{}) {
 
 }

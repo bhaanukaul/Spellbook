@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/blevesearch/bleve/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/ini.v1"
@@ -58,7 +59,7 @@ func StartServer(c *cli.Context) error {
 	router.GET("/ping", Ping)
 	configFile := GetServerConfig()
 	port := Utils.GetKVFromConfig(configFile, "http_port", "server")
-	router.Run("0.0.0.0:" + port)
+	router.Run("127.0.0.1:" + port)
 	return nil
 }
 
@@ -93,6 +94,13 @@ func SetupServer(c *cli.Context) error {
 	}
 	emptyConfig.Close()
 	Utils.AddKVToConfig(spellbookConfigFile, "http_port", port, "server")
+	mapping := bleve.NewIndexMapping()
+	index_name := "Spellbook.bleve"
+	Utils.AddKVToConfig(spellbookConfigFile, "index", index_name, "server")
+	_, err = bleve.New(index_name, mapping)
+	if err != nil {
+		Utils.Error("Error", err)
+	}
 	return nil
 }
 
