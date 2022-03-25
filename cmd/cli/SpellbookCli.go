@@ -63,7 +63,7 @@ func SpellbookFind(c *cli.Context) error {
 		return err
 	}
 	for _, spell := range searchResult.Hits {
-		tbl.AddRow(spell.Fields["ID"], spell.Fields["Description"], spell.Fields["Contents"], spell.Fields["Language"], spell.Fields["Tags"])
+		tbl.AddRow(spell.Fields["id"], spell.Fields["description"], spell.Fields["contents"], spell.Fields["language"], spell.Fields["tags"])
 	}
 	tbl.Print()
 	index.Close()
@@ -81,7 +81,7 @@ func SpellbookFinByTag(c *cli.Context) error {
 		return err
 	}
 	for _, spell := range searchResult.Hits {
-		tbl.AddRow(spell.ID, spell.Fields["Description"], spell.Fields["Contents"], spell.Fields["Language"], spell.Fields["Tags"])
+		tbl.AddRow(spell.ID, spell.Fields["description"], spell.Fields["contents"], spell.Fields["language"], spell.Fields["tags"])
 	}
 	tbl.Print()
 	index.Close()
@@ -104,7 +104,8 @@ func SpellbookFindById(c *cli.Context) error {
 		fmt.Printf("Spell with id %s cannot be found.", id)
 	} else {
 		foundSpell := spell.Hits[0]
-		tbl.AddRow(foundSpell.Fields["ID"], foundSpell.Fields["Description"], foundSpell.Fields["Contents"], foundSpell.Fields["Language"], foundSpell.Fields["Tags"])
+		tbl.AddRow(foundSpell.Fields["id"], foundSpell.Fields["description"], foundSpell.Fields["contents"], foundSpell.Fields["language"], foundSpell.Fields["tags"])
+
 		tbl.Print()
 	}
 	index.Close()
@@ -134,7 +135,7 @@ func SpellbookAddSpell(c *cli.Context) error {
 		fmt.Printf("Spell with id %s cannot be found.", newSpell.ID)
 	} else {
 		foundSpell := spell.Hits[0]
-		tbl.AddRow(foundSpell.Fields["ID"], foundSpell.Fields["Description"], foundSpell.Fields["Contents"], foundSpell.Fields["Language"], foundSpell.Fields["Tags"])
+		tbl.AddRow(foundSpell.Fields["id"], foundSpell.Fields["description"], foundSpell.Fields["contents"], foundSpell.Fields["language"], foundSpell.Fields["tags"])
 		tbl.Print()
 	}
 
@@ -204,7 +205,7 @@ func SpellbookUpdateSpell(c *cli.Context) error {
 		return err
 	}
 
-	tbl.AddRow(foundSpell.Fields["ID"], foundSpell.Fields["Description"], foundSpell.Fields["Contents"], foundSpell.Fields["Language"], foundSpell.Fields["Tags"])
+	tbl.AddRow(foundSpell.Fields["id"], foundSpell.Fields["description"], foundSpell.Fields["contents"], foundSpell.Fields["language"], foundSpell.Fields["tags"])
 
 	tbl.Print()
 	index.Close()

@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var tableName = "spells"
-
 type Spell struct {
 	ID          string `json:"id,omitempty"`
 	Language    string `json:"language,omitempty"`
@@ -46,7 +44,6 @@ func GetAllSpells(index bleve.Index) (*bleve.SearchResult, error) {
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
 	results, _ := index.Search(search)
-
 	return results, nil
 }
 
