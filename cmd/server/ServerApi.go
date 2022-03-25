@@ -3,9 +3,8 @@ package main
 import (
 	"Spellbook/internal/Spell"
 	"Spellbook/internal/Utils"
-	"fmt"
+	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/ini.v1"
@@ -58,19 +57,18 @@ func UpdateSpell(c *gin.Context) {
 		return
 	}
 	spell_id_param := c.Param("id")
-	spell_id, err := strconv.Atoi(spell_id_param)
+	spellToUpdate.ID = spell_id_param
+	index := GetBleveIndex()
+	_, err := Spell.CreateSpell(spellToUpdate, index)
 	if err != nil {
-		panic(err)
-	}
 
-	Spell.UpdateSpell(spell_id, spellToUpdate)
+		c.JSON(http.StatusInternalServerError, err)
+	}
+	// Spell.UpdateSpell(spell_id_param, spellToUpdate, index)
+	index.Close()
 }
 
 func CreateSpell(c *gin.Context) {
-	// language := c.PostForm("language")
-	// content := c.PostForm("content")
-	// description := c.PostForm("description")
-	// tags := c.PostForm("tags")
 
 	var newSpell Spell.Spell
 	if err := c.BindJSON(&newSpell); err != nil {
@@ -78,10 +76,10 @@ func CreateSpell(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("From POST CreateSpell: %s, %s, %s, %s", newSpell.Language, newSpell.Contents, newSpell.Description, newSpell.Tags)
-
-	spell, err := Spell.CreateSpell(newSpell.Language, newSpell.Contents, newSpell.Description, newSpell.Tags)
-
+	log.Printf("From POST CreateSpell: %s, %s, %s, %s", newSpell.Language, newSpell.Contents, newSpell.Description, newSpell.Tags)
+	index := GetBleveIndex()
+	spell, err := Spell.CreateSpell(newSpell, index)
+	index.Close()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err)
 		return
@@ -93,23 +91,27 @@ func CreateSpell(c *gin.Context) {
 
 func GetSpell(c *gin.Context) {
 	spell_id_param := c.Param("id")
-	spell_id, err := strconv.Atoi(spell_id_param)
+	index := GetBleveIndex()
+	searchResult, err := Spell.GetSpellByID(spell_id_param, index)
+	index.Close()
+
 	if err != nil {
 		panic(err)
 	}
-	spell, err := Spell.GetSpellByID(spell_id)
-	if err != nil {
-		panic(err)
+
+	if searchResult.Hits.Len() == 0 {
+		c.JSON(http.StatusNotFound, "Spell Not Found")
+	} else {
+		result := searchResult.Hits[0].Fields
+		// c.BindJSON(&result)
+		c.JSON(http.StatusOK, result)
 	}
-	if spell.ID == 0 {
-		c.JSON(http.StatusNotFound, nil)
-		return
-	}
-	c.JSON(http.StatusOK, spell)
 }
 
 func GetAllSpells(c *gin.Context) {
-	spells, err := Spell.GetAllSpells()
+	index := GetBleveIndex()
+	spells, err := Spell.GetAllSpells(index)
+	index.Close()
 	if err != nil {
 		panic(err)
 	}
