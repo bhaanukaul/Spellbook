@@ -15,7 +15,7 @@ type Spell struct {
 	Description string `json:"description,omitempty"`
 	Author      string `json:"author,omitempty"`
 	Tags        string `json:"tags,omitempty"`
-	Remote      string `json:"remote,omitempty"` // This will be the alias to the remote DB server. Can find actual url in the config dir.
+	// Remote      string `json:"remote,omitempty"` // This will be the alias to the remote DB server. Can find actual url in the config dir.
 }
 
 func CreateSpell(spell Spell, index bleve.Index) (Spell, error) {
@@ -29,7 +29,7 @@ func CreateSpell(spell Spell, index bleve.Index) (Spell, error) {
 		id = spell.ID
 	}
 	newSpell := Spell{
-		ID: id, Language: spell.Language, Contents: spell.Contents, Description: spell.Description,
+		ID: id, Language: spell.Language, Contents: spell.Contents, Description: spell.Description, Author: spell.Author,
 		Tags: spell.Tags,
 	}
 	// db.Table(tableName).Create(&newSpell)
@@ -44,6 +44,18 @@ func GetAllSpells(index bleve.Index) (*bleve.SearchResult, error) {
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
 	results, _ := index.Search(search)
+	return results, nil
+}
+
+func FindSpellsByDescription(description string, index bleve.Index) (*bleve.SearchResult, error) {
+	query := bleve.NewPhraseQuery([]string{description}, "description")
+	search := bleve.NewSearchRequest(query)
+	search.Fields = []string{"*"}
+	results, err := index.Search(search)
+	if err != nil {
+		Utils.Error("Error searching index.", err)
+	}
+
 	return results, nil
 }
 

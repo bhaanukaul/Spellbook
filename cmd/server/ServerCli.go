@@ -54,7 +54,7 @@ func StartServer(c *cli.Context) error {
 		api.POST("/spell", CreateSpell)
 		api.PATCH("/spell/:id", UpdateSpell)
 		// api.POST("/spellbook", AddRemoteSpellbookApi)
-		api.GET("/spellbooks", GetAllSpellbooks)
+		// api.GET("/spellbooks", GetAllSpellbooks)
 	}
 	router.GET("/ping", Ping)
 	configFile := GetServerConfig()

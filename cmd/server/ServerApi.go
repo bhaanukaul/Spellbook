@@ -3,9 +3,11 @@ package main
 import (
 	"Spellbook/internal/Spell"
 	"Spellbook/internal/Utils"
+	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/blevesearch/bleve/v2"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/ini.v1"
 )
@@ -102,16 +104,75 @@ func GetSpell(c *gin.Context) {
 	if searchResult.Hits.Len() == 0 {
 		c.JSON(http.StatusNotFound, "Spell Not Found")
 	} else {
+		var spell Spell.Spell
 		result := searchResult.Hits[0].Fields
+		spell.ID = result["id"].(string)
+		spell.Description = result["description"].(string)
+		spell.Language = result["language"].(string)
+		spell.Contents = result["contents"].(string)
+		spell.Tags = result["tags"].(string)
+		spell.Author = result["author"].(string)
+
 		// c.BindJSON(&result)
 		c.JSON(http.StatusOK, result)
 	}
 }
 
 func GetAllSpells(c *gin.Context) {
+	qf := c.Query("field")
+	qfv := c.Query("value")
+	log.Printf("Query params: %s, %s", qf, qfv)
 	index := GetBleveIndex()
-	spells, err := Spell.GetAllSpells(index)
+
+	if qf != "" && qfv != "" {
+		log.Printf("Using query parameters %s, %s", qf, qfv)
+		var searchResult *bleve.SearchResult
+		var err error
+		var spells []Spell.Spell
+		if qf == "tags" {
+			searchResult, err = Spell.FindSpellsByTag(qfv, index)
+		} else if qf == "description" {
+			searchResult, err = Spell.FindSpellsByDescription(qfv, index)
+		}
+
+		if err != nil {
+			Utils.Error(fmt.Sprintf("Error searching %s for %s", qf, qfv), err)
+			c.JSON(http.StatusInternalServerError, err)
+		}
+
+		for _, doc := range searchResult.Hits {
+			spell := Spell.Spell{
+				ID:          doc.Fields["id"].(string),
+				Description: doc.Fields["description"].(string),
+				Language:    doc.Fields["language"].(string),
+				Contents:    doc.Fields["contents"].(string),
+				Tags:        doc.Fields["tags"].(string),
+				Author:      doc.Fields["author"].(string),
+			}
+			spells = append(spells, spell)
+		}
+		index.Close()
+
+		c.JSON(http.StatusOK, spells)
+		return
+	}
+
+	log.Print("Getting all spells")
+
+	var spells []Spell.Spell
+	searchResult, err := Spell.GetAllSpells(index)
 	index.Close()
+	for _, doc := range searchResult.Hits {
+		spell := Spell.Spell{
+			ID:          doc.Fields["id"].(string),
+			Description: doc.Fields["description"].(string),
+			Language:    doc.Fields["language"].(string),
+			Contents:    doc.Fields["contents"].(string),
+			Tags:        doc.Fields["tags"].(string),
+			Author:      doc.Fields["author"].(string),
+		}
+		spells = append(spells, spell)
+	}
 	if err != nil {
 		panic(err)
 	}
