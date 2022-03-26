@@ -10,6 +10,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type SpellbookPing struct {
+	Version string
+}
+
 func GetDatabaseConnection() (db *gorm.DB) {
 	spellbookDB := GetSpellbookDBLocation()
 	db, err := gorm.Open(sqlite.Open(spellbookDB), &gorm.Config{})
@@ -33,4 +37,54 @@ func GetSpellbookDBLocation() string {
 	}
 	spellbook := cfg.Section("").Key("spellbookdb").String()
 	return spellbook
+}
+
+func Error(msg string, err error) {
+	fmt.Printf("%s, %v", msg, err)
+	// os.Exit(1)
+}
+
+func AddKVToConfig(cf string, key string, value string, section string) {
+	cfg, err := ini.Load(cf)
+	if err != nil {
+		Error("Failed to read file", err)
+	}
+
+	cfg.Section(section).Key(key).SetValue(value)
+	cfg.SaveTo(cf)
+}
+
+func DoesSectionExist(cf string, section string) bool {
+	cfg, err := ini.Load(cf)
+	if err != nil {
+		Error("Failed to read file", err)
+		return false
+	}
+
+	sectionExists, err := cfg.GetSection(section)
+	if err != nil {
+		Error("Failed to get section", err)
+		return false
+	}
+
+	log.Printf("section: %#v", sectionExists)
+	return true
+}
+
+func GetKVFromConfig(cf string, key string, section string) string {
+	cfg, err := ini.Load(cf)
+	if err != nil {
+		Error("Failed to read file", err)
+	}
+
+	value := cfg.Section(section).Key(key).String()
+	return value
+}
+
+func GetBleveIndex() {
+
+}
+
+func InsertJsonToDB(objs []interface{}) {
+
 }

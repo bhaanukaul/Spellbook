@@ -1,17 +1,9 @@
 package main
 
 import (
-	"Spellbook/internal/Spell"
-	"Spellbook/internal/Utils"
-	"fmt"
+	"Spellbook/internal/Constants"
 	"log"
 	"os"
-	"path/filepath"
-	"strconv"
-
-	"github.com/fatih/color"
-	"github.com/rodaine/table"
-	"gopkg.in/ini.v1"
 
 	"github.com/urfave/cli/v2"
 )
@@ -26,67 +18,19 @@ func main() {
 				Name:    "find",
 				Aliases: []string{"f"},
 				Usage:   "return all spells in your Spellbook",
-				Action: func(c *cli.Context) error {
-					tbl := GenerateTableHeader()
-
-					spells, err := Spell.GetAllSpells()
-					if err != nil {
-						log.Fatalf("err: %s", err)
-						return err
-					}
-					for _, spell := range spells {
-						tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
-					}
-					tbl.Print()
-
-					return nil
-				},
+				Action:  SpellbookFind,
 				Subcommands: []*cli.Command{
 					{
 						Name:    "tag",
 						Aliases: []string{"t"},
 						Usage:   "Find spells based on a tag.\nSpellbook find tag",
-						Action: func(c *cli.Context) error {
-							tbl := GenerateTableHeader()
-
-							// fmt.Printf("args %s with len %d", c.Args(), c.Args().Len())
-
-							spells, err := Spell.FindSpellsByTag(c.Args().First())
-							if err != nil {
-								log.Fatalf("%s", err)
-								return err
-							}
-							for _, spell := range spells {
-								tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
-							}
-							tbl.Print()
-							return nil
-						},
+						Action:  SpellbookFinByTag,
 					},
 					{
 						Name:    "id",
 						Aliases: []string{},
 						Usage:   "Return spell based on a ID in database.\nSpellbook find tag",
-						Action: func(c *cli.Context) error {
-
-							// fmt.Printf("args %s with len %d", c.Args(), c.Args().Len())
-							tbl := GenerateTableHeader()
-
-							int_id, err := strconv.Atoi(c.Args().First())
-							if err != nil {
-								log.Fatalf("%s", err)
-								return err
-							}
-							spell, err := Spell.GetSpellByID(int_id)
-							if err != nil {
-								log.Fatalf("%s", err)
-								return err
-							}
-							tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
-							tbl.Print()
-
-							return nil
-						},
+						Action:  SpellbookFindById,
 					},
 				},
 			},
@@ -120,27 +64,7 @@ func main() {
 						Required: true,
 					},
 				},
-				Action: func(c *cli.Context) error {
-					log.Printf("Flags from add language: %s\ncontent: %s\ndescription: %s\ntags: %s",
-						c.String("language"), c.String("content"), c.String("description"), c.String("tags"))
-					tbl := GenerateTableHeader()
-
-					newSpell, err := Spell.CreateSpell(c.String("language"), c.String("content"), c.String("description"), c.String("tags"))
-					if err != nil {
-						log.Fatalf("%s", err)
-						return err
-					}
-
-					spell, err := Spell.GetSpellByID(newSpell.ID)
-					if err != nil {
-						log.Fatalf("%s", err)
-						return err
-					}
-					tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
-					tbl.Print()
-
-					return nil
-				},
+				Action: SpellbookAddSpell,
 			},
 			{
 				Name:    "init",
@@ -150,50 +74,11 @@ func main() {
 					&cli.StringFlag{
 						Name:    "name",
 						Aliases: []string{"n"},
-						Value:   "Spellbook.db",
-						Usage:   "Name of the Spellbook file. Default is Spellbook.db",
+						Value:   Constants.CliConfigBleveIndexFileName,
+						Usage:   "Name of the Spellbook file. Default is Spellbook.bleve",
 					},
 				},
-				Action: func(c *cli.Context) error {
-					userHome, err := os.UserHomeDir()
-					spellbookFileName := c.String("name")
-					configFileName := "Spellbook.ini"
-					if err != nil {
-						log.Fatal(err)
-					}
-					spellbookConfigDir := filepath.Join(userHome, ".config", "Spellbook")
-					err = os.MkdirAll(spellbookConfigDir, os.ModePerm)
-					if err != nil {
-						log.Fatal(err)
-					}
-					spellBookDB := spellbookConfigDir + "/" + spellbookFileName
-					emptyDB, err := os.Create(spellBookDB)
-					if err != nil {
-						log.Fatal(err)
-					}
-					log.Printf("Created DB at %s\n", spellBookDB)
-					emptyDB.Close()
-
-					spellbookConfigFile := spellbookConfigDir + "/" + configFileName
-					emptyConfig, err := os.Create(spellbookConfigFile)
-					if err != nil {
-						log.Fatal(err)
-					}
-					// fmt.Printf("Created config at %s\n", spellbookConfigFile)
-					emptyConfig.Close()
-
-					cfg, err := ini.Load(spellbookConfigFile)
-					if err != nil {
-						fmt.Printf("Fail to read file: %v", err)
-						os.Exit(1)
-					}
-					cfg.Section("").Key("spellbookdb").SetValue(spellBookDB)
-					cfg.SaveTo(spellbookConfigFile)
-
-					db := Utils.GetDatabaseConnection()
-					db.Migrator().CreateTable(&Spell.Spell{})
-					return nil
-				},
+				Action: SpellbookInit,
 			},
 			{
 				Name:    "update",
@@ -226,57 +111,7 @@ func main() {
 						Required: true,
 					},
 				},
-				Action: func(c *cli.Context) error {
-					tbl := GenerateTableHeader()
-
-					var spellToUpdate Spell.Spell
-					spell_language := c.String("language")
-					// fmt.Printf("Language: %s", c.String("language"))
-					spell_content := c.String("content")
-					spell_description := c.String("description")
-					spell_tags := c.String("tags")
-					// int_id, err := strconv.Atoi(c.Args().First())
-					spell_id := c.Int("id")
-
-					if spell_language != "" {
-						spellToUpdate.Language = spell_language
-					}
-
-					if spell_content != "" {
-						spellToUpdate.Contents = spell_content
-					}
-
-					if spell_description != "" {
-						spellToUpdate.Description = spell_description
-					}
-
-					if spell_tags != "" {
-						spell, err := Spell.GetSpellByID(spell_id)
-						if err != nil {
-							log.Fatalf("%s", err)
-							return err
-						}
-						newTags := spell.Tags + "," + spell_tags
-						spellToUpdate.Tags = newTags
-					}
-					fmt.Printf("Updating %d with %#v\n", spell_id, spellToUpdate)
-
-					_, err := Spell.UpdateSpell(spell_id, spellToUpdate)
-					if err != nil {
-						log.Fatalf("%s", err)
-						return err
-					}
-
-					updatedSpell, err := Spell.GetSpellByID(spell_id)
-					if err != nil {
-						log.Fatalf("%s", err)
-						return err
-					}
-					tbl.AddRow(updatedSpell.ID, updatedSpell.Description, updatedSpell.Contents,
-						updatedSpell.Language, updatedSpell.Tags)
-					tbl.Print()
-					return nil
-				},
+				Action: SpellbookUpdateSpell,
 			},
 		},
 	}
@@ -285,12 +120,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func GenerateTableHeader() table.Table {
-	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-	columnFmt := color.New(color.FgYellow).SprintfFunc()
-	tbl := table.New("ID", "Description", "Contents", "Language", "Tags")
-	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
-	return tbl
 }

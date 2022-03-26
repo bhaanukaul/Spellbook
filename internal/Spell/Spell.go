@@ -2,66 +2,94 @@ package Spell
 
 import (
 	"Spellbook/internal/Utils"
+	"log"
 
-	"github.com/gin-gonic/gin"
+	"github.com/blevesearch/bleve/v2"
+	"github.com/google/uuid"
 )
 
-var tableName = "spells"
-
 type Spell struct {
-	ID          int    `json:"id,omitempty"`
+	ID          string `json:"id,omitempty"`
 	Language    string `json:"language,omitempty"`
 	Contents    string `json:"contents,omitempty"`
 	Description string `json:"description,omitempty"`
+	Author      string `json:"author,omitempty"`
 	Tags        string `json:"tags,omitempty"`
+	// Remote      string `json:"remote,omitempty"` // This will be the alias to the remote DB server. Can find actual url in the config dir.
 }
 
-func GetSpell(c *gin.Context) {
-	return
-}
-
-func CreateSpell(language string, contents string, description string, tags string) (Spell, error) {
-	db := Utils.GetDatabaseConnection()
+func CreateSpell(spell Spell, index bleve.Index) (Spell, error) {
+	// db := Utils.GetDatabaseConnection()
 	// var newSpell SpellDBModel
-	newSpell := Spell{
-		Language: language, Contents: contents, Description: description,
-		Tags: tags,
+	var id string
+	if spell.ID == "" {
+		uuid := uuid.New()
+		id = uuid.String()
+	} else {
+		id = spell.ID
 	}
-	db.Table(tableName).Create(&newSpell)
+	newSpell := Spell{
+		ID: id, Language: spell.Language, Contents: spell.Contents, Description: spell.Description, Author: spell.Author,
+		Tags: spell.Tags,
+	}
+	// db.Table(tableName).Create(&newSpell)
+	index.Index(newSpell.ID, newSpell)
 	return newSpell, nil
 }
 
-func GetAllSpells() ([]Spell, error) {
-	db := Utils.GetDatabaseConnection()
-	var results []Spell
-	db.Table(tableName).Find(&results)
+func GetAllSpells(index bleve.Index) (*bleve.SearchResult, error) {
+
+	log.Print("Getting spells")
+	query := bleve.NewMatchAllQuery()
+	search := bleve.NewSearchRequest(query)
+	search.Fields = []string{"*"}
+	results, _ := index.Search(search)
 	return results, nil
 }
 
-func FindSpellsByTag(tag string) ([]Spell, error) {
-	db := Utils.GetDatabaseConnection()
-	var results []Spell
-	// fmt.Printf("args in FindSpellsByTags %s\n", tag)
-
-	// db.Table("Spells").Where("tags LIKE ?", "%?%", tags).Find(&dbResults)
-	db.Table(tableName).Where("tags LIKE ?", "%"+tag+"%").Find(&results)
+func FindSpellsByDescription(description string, index bleve.Index) (*bleve.SearchResult, error) {
+	query := bleve.NewPhraseQuery([]string{description}, "description")
+	search := bleve.NewSearchRequest(query)
+	search.Fields = []string{"*"}
+	results, err := index.Search(search)
+	if err != nil {
+		Utils.Error("Error searching index.", err)
+	}
 
 	return results, nil
 }
 
-func GetSpellByID(spell_id int) (Spell, error) {
-	db := Utils.GetDatabaseConnection()
-	// fmt.Printf("ID in GetSpellbyID: %d\n", spell_id)
-	var result Spell
-	// db.Table("Spells").Where("tags LIKE ?", "%?%", tags).Find(&dbResults)
-	db.Table(tableName).Find(&result, spell_id)
-	// fmt.Printf("Got spell by id: %#v", result)
-	return result, nil
+func FindSpellsByTag(tag string, index bleve.Index) (*bleve.SearchResult, error) {
+	query := bleve.NewPhraseQuery([]string{tag}, "tags")
+	search := bleve.NewSearchRequest(query)
+	search.Fields = []string{"*"}
+	results, err := index.Search(search)
+	if err != nil {
+		Utils.Error("Error searching index.", err)
+	}
+
+	return results, nil
 }
 
-func UpdateSpell(spell_id int, spell Spell) (Spell, error) {
-	db := Utils.GetDatabaseConnection()
-	var spellToUpdate Spell
-	db.Table(tableName).Model(&spellToUpdate).Where("id = ?", spell_id).Updates(spell)
-	return spellToUpdate, nil
+func GetSpellByID(spell_id string, index bleve.Index) (*bleve.SearchResult, error) {
+	query := bleve.NewDocIDQuery([]string{spell_id})
+	search := bleve.NewSearchRequest(query)
+	// search.Fields = []string{"tags"}
+	search.Fields = []string{"*"}
+	results, err := index.Search(search)
+	if err != nil {
+		Utils.Error("Error searching index.", err)
+	}
+
+	return results, nil
+}
+
+func UpdateSpell(spell_id string, updatedSpell Spell, index bleve.Index) (Spell, error) {
+
+	err := index.Index(spell_id, updatedSpell)
+
+	if err != nil {
+		Utils.Error("Error getting document from index.", err)
+	}
+	return updatedSpell, nil
 }

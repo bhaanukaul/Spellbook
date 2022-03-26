@@ -1,0 +1,16 @@
+[
+    {
+        "language": "k8s",
+        "contents":"kubectl get pods",
+        "description":"Get all the pods running in a k8s context.",
+        "author":"Bhaanu",
+        "tags":"kubernetes,containers,"
+    },
+    {
+        "language": "k8s",
+        "contents":"kubectl exec <pod> -it /bin/bash",
+        "description":"Get a bash shell for a pod to run shell commands in the pod.",
+        "author":"Bhaanu",
+        "tags":"kubernetes,containers,"
+    }
+]

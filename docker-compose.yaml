@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: Spellbookdb
+  app:
+    build: .
+    ports:
+     - 8080:8080
+    links:
+     - db
+    restart: always
+  
