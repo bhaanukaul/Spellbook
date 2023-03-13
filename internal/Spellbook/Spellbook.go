@@ -1,7 +1,8 @@
-package Spell
+package Spellbook
 
 import (
 	"Spellbook/internal/Utils"
+
 	"log"
 
 	"github.com/blevesearch/bleve/v2"
@@ -18,7 +19,11 @@ type Spell struct {
 	// Remote      string `json:"remote,omitempty"` // This will be the alias to the remote DB server. Can find actual url in the config dir.
 }
 
-func CreateSpell(spell Spell, index bleve.Index) (Spell, error) {
+type Spellbook struct {
+	Index bleve.Index
+}
+
+func (s *Spellbook) CreateSpell(spell Spell) (Spell, error) {
 	// db := Utils.GetDatabaseConnection()
 	// var newSpell SpellDBModel
 	var id string
@@ -33,25 +38,25 @@ func CreateSpell(spell Spell, index bleve.Index) (Spell, error) {
 		Tags: spell.Tags,
 	}
 	// db.Table(tableName).Create(&newSpell)
-	index.Index(newSpell.ID, newSpell)
+	s.Index.Index(newSpell.ID, newSpell)
 	return newSpell, nil
 }
 
-func GetAllSpells(index bleve.Index) (*bleve.SearchResult, error) {
+func (s *Spellbook) GetAllSpells() (*bleve.SearchResult, error) {
 
 	log.Print("Getting spells")
 	query := bleve.NewMatchAllQuery()
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
-	results, _ := index.Search(search)
+	results, _ := s.Index.Search(search)
 	return results, nil
 }
 
-func FindSpellsByDescription(description string, index bleve.Index) (*bleve.SearchResult, error) {
+func (s *Spellbook) FindSpellsByDescription(description string) (*bleve.SearchResult, error) {
 	query := bleve.NewPhraseQuery([]string{description}, "description")
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
-	results, err := index.Search(search)
+	results, err := s.Index.Search(search)
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
@@ -59,11 +64,11 @@ func FindSpellsByDescription(description string, index bleve.Index) (*bleve.Sear
 	return results, nil
 }
 
-func FindSpellsByTag(tag string, index bleve.Index) (*bleve.SearchResult, error) {
+func (s *Spellbook) FindSpellsByTag(tag string) (*bleve.SearchResult, error) {
 	query := bleve.NewPhraseQuery([]string{tag}, "tags")
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
-	results, err := index.Search(search)
+	results, err := s.Index.Search(search)
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
@@ -71,12 +76,12 @@ func FindSpellsByTag(tag string, index bleve.Index) (*bleve.SearchResult, error)
 	return results, nil
 }
 
-func GetSpellByID(spell_id string, index bleve.Index) (*bleve.SearchResult, error) {
+func (s *Spellbook) GetSpellByID(spell_id string) (*bleve.SearchResult, error) {
 	query := bleve.NewDocIDQuery([]string{spell_id})
 	search := bleve.NewSearchRequest(query)
 	// search.Fields = []string{"tags"}
 	search.Fields = []string{"*"}
-	results, err := index.Search(search)
+	results, err := s.Index.Search(search)
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
@@ -84,9 +89,9 @@ func GetSpellByID(spell_id string, index bleve.Index) (*bleve.SearchResult, erro
 	return results, nil
 }
 
-func UpdateSpell(spell_id string, updatedSpell Spell, index bleve.Index) (Spell, error) {
+func (s *Spellbook) UpdateSpell(spell_id string, updatedSpell Spell) (Spell, error) {
 
-	err := index.Index(spell_id, updatedSpell)
+	err := s.Index.Index(spell_id, updatedSpell)
 
 	if err != nil {
 		Utils.Error("Error getting document from index.", err)

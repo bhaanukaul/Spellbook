@@ -1,20 +1,22 @@
-package main
+package cmd
 
 import (
+	"Spellbook/internal/Constants"
 	"Spellbook/internal/Spell"
 	"Spellbook/internal/Utils"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/urfave/cli/v2"
 	"gopkg.in/ini.v1"
 )
-
-/*
-API Functions
-*/
 
 type RemoteSection struct {
 	Alias       string `json:"alias"`
@@ -22,7 +24,128 @@ type RemoteSection struct {
 	Url         string `json:"url"`
 }
 
-func GetAllSpellbooks(c *gin.Context) {
+func SyncRemoteSpellbook(c *cli.Context) error {
+	alias := c.String("alias")
+	log.Printf("alias: %s", alias)
+	if alias != "" {
+		SyncRemote(alias)
+		return nil
+	}
+	config := GetServerConfig()
+	cfg, err := ini.Load(config)
+	if err != nil {
+		Utils.Error("", err)
+	}
+	parent, err := cfg.GetSection(Constants.RemotesParent)
+	if err != nil {
+		Utils.Error("", err)
+	}
+	sections := parent.ChildSections()
+	for _, s := range sections {
+		SyncRemote(s.Name())
+	}
+	return nil
+}
+
+/*
+Initial Server funcs
+*/
+var serverCmd = &cobra.Command{
+	Use: "server",
+}
+
+var serverStartCmd = &cobra.Command{
+	Use: "start",
+	Run: StartServer,
+}
+
+func init() {
+	rootCmd.AddCommand(serverCmd)
+	serverCmd.AddCommand(serverStartCmd)
+}
+
+func StartServer(c *cobra.Command, args []string) {
+	router := gin.Default()
+
+	api := router.Group("/api")
+	{
+		api.GET("/spell/:id", getSpell)
+		api.GET("/spells", getAllSpells)
+		api.POST("/spell", createSpell)
+		api.PATCH("/spell/:id", updateSpell)
+		// api.POST("/spellbook", AddRemoteSpellbookApi)
+		// api.GET("/spellbooks", GetAllSpellbooks)
+	}
+	router.GET("/ping", ping)
+	// configFile := GetServerConfig()
+	// port := Utils.GetKVFromConfig(configFile, "http_port", "server")
+	router.Run(viper.GetString("SERVER_PORT"))
+	return
+}
+
+func SetupServer(c *cli.Context) error {
+	var serverHome string
+	var err error
+	serverHome, err = os.Getwd()
+	port := c.String("port")
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+
+	configFileName := "spellbook-server.ini"
+	spellbookConfigDir := GetServerConfigDir(serverHome)
+	err = os.MkdirAll(spellbookConfigDir, os.ModePerm)
+	if err != nil {
+		Utils.Error("Error", err)
+	}
+
+	spellbookRemotesDir := GetServerRemotesDir(serverHome)
+	err = os.MkdirAll(spellbookRemotesDir, os.ModePerm)
+	if err != nil {
+		Utils.Error("Error", err)
+	}
+
+	spellbookConfigFile := spellbookConfigDir + "/" + configFileName
+	emptyConfig, err := os.Create(spellbookConfigFile)
+
+	if err != nil {
+		Utils.Error("Error", err)
+	}
+	emptyConfig.Close()
+	Utils.AddKVToConfig(spellbookConfigFile, "http_port", port, "server")
+	mapping := bleve.NewIndexMapping()
+	index_name := "Spellbook.bleve"
+	Utils.AddKVToConfig(spellbookConfigFile, "index", index_name, "server")
+	_, err = bleve.New(index_name, mapping)
+	if err != nil {
+		Utils.Error("Error", err)
+	}
+	return nil
+}
+
+/*
+Server Management
+*/
+
+func AddRemoteSpellbookCli(c *cli.Context) error {
+	if c.Args().Len() != 3 {
+		Utils.Error("\"spellbook-server add\" requires 2 arguments.", nil)
+	}
+	alias := c.String("alias")
+	spellbookUrl := c.String("url")
+	description := c.String("description")
+	splitSpellbook := strings.Split(spellbookUrl, ".")
+	extension := splitSpellbook[len(splitSpellbook)-1]
+	if extension != "json" {
+		Utils.Error("Remote needs to be a json file.", nil)
+	}
+
+	AddRemoteServer(alias, spellbookUrl, description)
+	return nil
+}
+
+func getAllSpellbooks(c *gin.Context) {
 	cd := GetServerConfig()
 
 	cfg, err := ini.Load(cd)
@@ -41,7 +164,7 @@ func GetAllSpellbooks(c *gin.Context) {
 	c.JSON(http.StatusOK, returnSb)
 }
 
-func AddRemoteSpellbookApi(c *gin.Context) {
+func addRemoteSpellbookApi(c *gin.Context) {
 	var remoteSection RemoteSection
 	if err := c.BindJSON(&remoteSection); err != nil {
 		Utils.Error("", err)
@@ -52,7 +175,7 @@ func AddRemoteSpellbookApi(c *gin.Context) {
 	c.JSON(http.StatusCreated, remoteSection)
 }
 
-func UpdateSpell(c *gin.Context) {
+func updateSpell(c *gin.Context) {
 	var spellToUpdate Spell.Spell
 	if err := c.BindJSON(&spellToUpdate); err != nil {
 		c.JSON(http.StatusBadRequest, "Invalid Request Body")
@@ -70,7 +193,7 @@ func UpdateSpell(c *gin.Context) {
 	index.Close()
 }
 
-func CreateSpell(c *gin.Context) {
+func createSpell(c *gin.Context) {
 
 	var newSpell Spell.Spell
 	if err := c.BindJSON(&newSpell); err != nil {
@@ -91,7 +214,7 @@ func CreateSpell(c *gin.Context) {
 
 }
 
-func GetSpell(c *gin.Context) {
+func getSpell(c *gin.Context) {
 	spell_id_param := c.Param("id")
 	index := GetBleveIndex()
 	searchResult, err := Spell.GetSpellByID(spell_id_param, index)
@@ -118,7 +241,7 @@ func GetSpell(c *gin.Context) {
 	}
 }
 
-func GetAllSpells(c *gin.Context) {
+func getAllSpells(c *gin.Context) {
 	qf := c.Query("field")
 	qfv := c.Query("value")
 	log.Printf("Query params: %s, %s", qf, qfv)
@@ -179,7 +302,7 @@ func GetAllSpells(c *gin.Context) {
 	c.JSON(http.StatusOK, spells)
 }
 
-func Ping(c *gin.Context) {
+func ping(c *gin.Context) {
 	ping := Utils.SpellbookPing{
 		Version: "1.0",
 	}
