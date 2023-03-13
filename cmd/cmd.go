@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"Spellbook/internal/Spellbook"
+	"Spellbook/internal/Utils"
 	"fmt"
 	"log"
 	"os"
@@ -49,7 +50,7 @@ func initConfig() {
 
 	index_file := viper.GetString("BLEVE_INDEX")
 	log.Printf("bleve index: %s", index_file)
-	if !FileExists(index_file) {
+	if !Utils.FileExists(index_file) {
 		log.Printf("No bleve index, creating one: %s", index_file)
 		// return
 	} else {

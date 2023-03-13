@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"Spellbook/internal/Spellbook"
+	"Spellbook/internal/Utils"
 	"fmt"
 	"log"
 
@@ -99,7 +100,7 @@ func getSpellCli(c *cobra.Command, args []string) {
 	log.Printf("Getting id: %s", args[0])
 	spell_id := args[0]
 	spell := getSpell(spell_id)
-	tbl := GenerateTableHeader()
+	tbl := Utils.GenerateTableHeader()
 	if spell != nil {
 		tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
 	}
@@ -139,24 +140,26 @@ func createSpellApi(c *gin.Context) {
 }
 
 func createSpellCli(c *cobra.Command, args []string) {
-	spell := createSpell(contents, description, language, tags, author)
-	tbl := GenerateTableHeader()
-	if spell != nil {
-		tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
+	spell, err := createSpell(contents, description, language, tags, author)
+	tbl := Utils.GenerateTableHeader()
+	if err == nil {
+		if spell != nil {
+			tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
+		}
+		tbl.Print()
 	}
-	tbl.Print()
 
 }
 
-func createSpell(contents string, description string, language string, tags string, author string) *Spellbook.Spell {
+func createSpell(contents string, description string, language string, tags string, author string) (*Spellbook.Spell, error) {
 	spellToCreate := Spellbook.Spell{
 		Description: description, Language: language, Contents: contents, Tags: tags,
 	}
 	spell, err := spellbook.CreateSpell(spellToCreate)
 	if err != nil {
-		fmt.Errorf("Error creating spell: %#v", err)
+		return nil, fmt.Errorf("error creating spell: %#v", err)
 	}
-	return &spell
+	return &spell, nil
 }
 
 func updateSpell(c *gin.Context) {
