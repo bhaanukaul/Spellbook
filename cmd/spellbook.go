@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"Spellbook/internal/Spellbook"
-	"Spellbook/internal/Utils"
 	"fmt"
 	"log"
 
@@ -12,37 +10,49 @@ import (
 	"github.com/spf13/viper"
 )
 
-var serverCmd = &cobra.Command{
-	Use: "server",
-}
-
-var serverStartCmd = &cobra.Command{
-	Use: "start",
-	Run: startServer,
-}
-
-var initCmd = &cobra.Command{
-	Use: "init",
-	Run: initBleveIndex,
-}
-
-var getSpellCmd = &cobra.Command{
-	Use:  "find",
-	Args: cobra.ExactArgs(1),
-	Run:  getSpellCli,
-}
-
-var createSpellCmd = &cobra.Command{
-	Use: "create",
-	Run: createSpellCli,
-}
-
 var (
-	description string
-	contents    string
-	tags        string
-	language    string
-	author      string
+	description    string
+	contents       string
+	tags           string
+	language       string
+	server_port    string
+	server_address string
+	bleve_index    string
+
+	updateSpellCmd = &cobra.Command{
+		Use: "update",
+		Run: updateSpellCli,
+	}
+
+	createSpellCmd = &cobra.Command{
+		Use: "create",
+		Run: createSpellCli,
+	}
+
+	serverCmd = &cobra.Command{
+		Use: "server",
+	}
+
+	serverStartCmd = &cobra.Command{
+		Use: "start",
+		Run: startServer,
+	}
+
+	initCmd = &cobra.Command{
+		Use: "init",
+		Run: initBleveIndex,
+	}
+
+	getSpellCmd = &cobra.Command{
+		Use:  "find",
+		Args: cobra.ExactArgs(1),
+		Run:  getSpellCli,
+	}
+
+	getAllSpellsCmd = &cobra.Command{
+		Use: "find-all",
+		Run: getAllSpellsCli,
+	}
 )
 
 func init() {
@@ -52,13 +62,23 @@ func init() {
 	createSpellCmd.Flags().StringVarP(&language, "language", "l", "", "Language of the spell")
 	createSpellCmd.MarkFlagRequired("description")
 	createSpellCmd.MarkFlagRequired("contents")
-	createSpellCmd.MarkFlagRequired("language")
+	createSpellCmd.MarkFlagRequired("tags")
+
+	rootCmd.Flags().StringVarP(&bleve_index, "index", "i", "", "Bleve index file name")
 
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(getSpellCmd)
 	rootCmd.AddCommand(createSpellCmd)
+	rootCmd.AddCommand(updateSpellCmd)
+	rootCmd.AddCommand(getAllSpellsCmd)
 
+	serverStartCmd.Flags().StringVarP(&server_address, "address", "a", "", "Server address")
+	serverStartCmd.Flags().StringVarP(&server_port, "port", "p", "", "Server port")
+
+	viper.BindPFlag("SERVER_PORT", serverStartCmd.Flags().Lookup("port"))
+	viper.BindPFlag("SERVER_ADDRESS", serverStartCmd.Flags().Lookup("address"))
+	viper.BindPFlag("BLEVE_INDEX", rootCmd.Flags().Lookup("index"))
 	serverCmd.AddCommand(serverStartCmd)
 
 }
@@ -80,90 +100,17 @@ func startServer(c *cobra.Command, args []string) {
 	api := router.Group("/api")
 	{
 		api.GET("/spell/:id", getSpellApi)
-		api.GET("/spells", getAllSpells)
+		api.GET("/spells", getAllSpellsApi)
 		api.POST("/spell", createSpellApi)
-		api.PATCH("/spell/:id", updateSpell)
+		api.PATCH("/spell/:id", updateSpellApi)
 		// api.POST("/spellbook", AddRemoteSpellbookApi)
 		// api.GET("/spellbooks", GetAllSpellbooks)
 	}
 	router.GET("/ping", ping)
 	// configFile := GetServerConfig()
 	// port := Utils.GetKVFromConfig(configFile, "http_port", "server")
+
 	router.Run(fmt.Sprintf("%s:%s", viper.GetString("SERVER_ADDRESS"), viper.GetString("SERVER_PORT")))
-}
-
-func getSpellApi(c *gin.Context) {
-
-}
-
-func getSpellCli(c *cobra.Command, args []string) {
-	log.Printf("Getting id: %s", args[0])
-	spell_id := args[0]
-	spell := getSpell(spell_id)
-	tbl := Utils.GenerateTableHeader()
-	if spell != nil {
-		tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
-	}
-	tbl.Print()
-}
-
-func getSpell(id string) *Spellbook.Spell {
-	searchResult, err := spellbook.GetSpellByID(id)
-
-	if err != nil {
-		panic(err)
-	}
-
-	if searchResult.Hits.Len() == 0 {
-		return nil
-	} else {
-		var spell Spellbook.Spell
-		result := searchResult.Hits[0].Fields
-		spell.ID = result["id"].(string)
-		spell.Description = result["description"].(string)
-		spell.Language = result["language"].(string)
-		spell.Contents = result["contents"].(string)
-		spell.Tags = result["tags"].(string)
-		spell.Author = result["author"].(string)
-
-		// c.BindJSON(&result)
-		return &spell
-	}
-}
-
-func getAllSpells(c *gin.Context) {
-
-}
-
-func createSpellApi(c *gin.Context) {
-
-}
-
-func createSpellCli(c *cobra.Command, args []string) {
-	spell, err := createSpell(contents, description, language, tags, author)
-	tbl := Utils.GenerateTableHeader()
-	if err == nil {
-		if spell != nil {
-			tbl.AddRow(spell.ID, spell.Description, spell.Contents, spell.Language, spell.Tags)
-		}
-		tbl.Print()
-	}
-
-}
-
-func createSpell(contents string, description string, language string, tags string, author string) (*Spellbook.Spell, error) {
-	spellToCreate := Spellbook.Spell{
-		Description: description, Language: language, Contents: contents, Tags: tags,
-	}
-	spell, err := spellbook.CreateSpell(spellToCreate)
-	if err != nil {
-		return nil, fmt.Errorf("error creating spell: %#v", err)
-	}
-	return &spell, nil
-}
-
-func updateSpell(c *gin.Context) {
-
 }
 
 func ping(c *gin.Context) {

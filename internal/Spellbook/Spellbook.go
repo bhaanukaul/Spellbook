@@ -24,12 +24,9 @@ type Spellbook struct {
 }
 
 func (s *Spellbook) CreateSpell(spell Spell) (Spell, error) {
-	// db := Utils.GetDatabaseConnection()
-	// var newSpell SpellDBModel
 	var id string
 	if spell.ID == "" {
-		uuid := uuid.New()
-		id = uuid.String()
+		id = uuid.New().String()
 	} else {
 		id = spell.ID
 	}
@@ -52,10 +49,22 @@ func (s *Spellbook) GetAllSpells() (*bleve.SearchResult, error) {
 	return results, nil
 }
 
-func (s *Spellbook) FindSpellsByDescription(description string) (*bleve.SearchResult, error) {
+func (s *Spellbook) GetSearchRange(from int, to int) (*bleve.SearchResult, error) {
+	log.Printf("Getting %d spells", to)
+	query := bleve.NewMatchAllQuery()
+	search := bleve.NewSearchRequest(query)
+	search.Fields = []string{"*"}
+	search.From = from
+	search.Size = to
+	results, _ := s.Index.Search(search)
+	return results, nil
+}
+
+func (s *Spellbook) FindSpellsByDescription(description string, result_size int) (*bleve.SearchResult, error) {
 	query := bleve.NewPhraseQuery([]string{description}, "description")
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
+	search.Size = result_size
 	results, err := s.Index.Search(search)
 	if err != nil {
 		Utils.Error("Error searching index.", err)
@@ -64,10 +73,11 @@ func (s *Spellbook) FindSpellsByDescription(description string) (*bleve.SearchRe
 	return results, nil
 }
 
-func (s *Spellbook) FindSpellsByTag(tag string) (*bleve.SearchResult, error) {
+func (s *Spellbook) FindSpellsByTag(tag string, result_size int) (*bleve.SearchResult, error) {
 	query := bleve.NewPhraseQuery([]string{tag}, "tags")
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
+	search.Size = result_size
 	results, err := s.Index.Search(search)
 	if err != nil {
 		Utils.Error("Error searching index.", err)
