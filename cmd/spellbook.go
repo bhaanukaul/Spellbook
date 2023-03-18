@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"Spellbook/internal/Constants"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/blevesearch/bleve/v2"
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -15,6 +17,7 @@ var (
 	contents       string
 	tags           string
 	language       string
+	limit          int
 	server_port    string
 	server_address string
 	bleve_index    string
@@ -44,14 +47,26 @@ var (
 	}
 
 	getSpellCmd = &cobra.Command{
-		Use:  "find",
-		Args: cobra.ExactArgs(1),
-		Run:  getSpellCli,
+		Use: "find",
+		Run: getSpellCli,
 	}
 
 	getAllSpellsCmd = &cobra.Command{
-		Use: "find-all",
-		Run: getAllSpellsCli,
+		Use:  "all",
+		Args: cobra.ExactArgs(1),
+		Run:  getAllSpellsCli,
+	}
+
+	getSpellsByDescriptionCmd = &cobra.Command{
+		Use:  "by-description",
+		Args: cobra.ExactArgs(1),
+		Run:  getSpellsByDescriptionCli,
+	}
+
+	getSpellByTagCmd = &cobra.Command{
+		Use:  "by-tag",
+		Args: cobra.ExactArgs(1),
+		Run:  getAllSpellsCli,
 	}
 )
 
@@ -63,15 +78,18 @@ func init() {
 	createSpellCmd.MarkFlagRequired("description")
 	createSpellCmd.MarkFlagRequired("contents")
 	createSpellCmd.MarkFlagRequired("tags")
-
+	getSpellCmd.Flags().IntVarP(&limit, "limit", "l", Constants.SearchResultLimit, "Limit of search results")
 	rootCmd.Flags().StringVarP(&bleve_index, "index", "i", "", "Bleve index file name")
+
+	getSpellCmd.AddCommand(getAllSpellsCmd)
+	getSpellCmd.AddCommand(getSpellsByDescriptionCmd)
+	getSpellCmd.AddCommand(getSpellByTagCmd)
 
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(getSpellCmd)
 	rootCmd.AddCommand(createSpellCmd)
 	rootCmd.AddCommand(updateSpellCmd)
-	rootCmd.AddCommand(getAllSpellsCmd)
 
 	serverStartCmd.Flags().StringVarP(&server_address, "address", "a", "", "Server address")
 	serverStartCmd.Flags().StringVarP(&server_port, "port", "p", "", "Server port")
@@ -79,6 +97,7 @@ func init() {
 	viper.BindPFlag("SERVER_PORT", serverStartCmd.Flags().Lookup("port"))
 	viper.BindPFlag("SERVER_ADDRESS", serverStartCmd.Flags().Lookup("address"))
 	viper.BindPFlag("BLEVE_INDEX", rootCmd.Flags().Lookup("index"))
+
 	serverCmd.AddCommand(serverStartCmd)
 
 }
@@ -95,12 +114,12 @@ func initBleveIndex(c *cobra.Command, args []string) {
 
 func startServer(c *cobra.Command, args []string) {
 
-	router := gin.Default()
+	router := echo.New()
 
 	api := router.Group("/api")
 	{
 		api.GET("/spell/:id", getSpellApi)
-		api.GET("/spells", getAllSpellsApi)
+		api.GET("/spells", getSpellsApi)
 		api.POST("/spell", createSpellApi)
 		api.PATCH("/spell/:id", updateSpellApi)
 		// api.POST("/spellbook", AddRemoteSpellbookApi)
@@ -110,9 +129,9 @@ func startServer(c *cobra.Command, args []string) {
 	// configFile := GetServerConfig()
 	// port := Utils.GetKVFromConfig(configFile, "http_port", "server")
 
-	router.Run(fmt.Sprintf("%s:%s", viper.GetString("SERVER_ADDRESS"), viper.GetString("SERVER_PORT")))
+	router.Logger.Fatal(router.Start(fmt.Sprintf("%s:%s", viper.GetString("SERVER_ADDRESS"), viper.GetString("SERVER_PORT"))))
 }
 
-func ping(c *gin.Context) {
-
+func ping(c echo.Context) error {
+	return c.String(http.StatusOK, "pong!")
 }

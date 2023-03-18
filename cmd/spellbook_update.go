@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/spf13/cobra"
 )
 
-func updateSpellApi(c *gin.Context) {
-
+func updateSpellApi(c echo.Context) error {
+	return nil
 }
 
 func updateSpellCli(c *cobra.Command, args []string) {

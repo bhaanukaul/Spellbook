@@ -7,25 +7,23 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/spf13/cobra"
 )
 
-func createSpellApi(c *gin.Context) {
-	var newSpell Spellbook.Spell
-	if err := c.BindJSON(&newSpell); err != nil {
-		c.JSON(http.StatusBadRequest, "Invalid Request Body")
-		return
+func createSpellApi(c echo.Context) error {
+	newSpell := new(Spellbook.Spell)
+	if err := c.Bind(newSpell); err != nil {
+		return c.JSON(http.StatusBadRequest, "Invalid Request Body")
 	}
 
 	log.Printf("From POST CreateSpell: %s, %s, %s, %s", newSpell.Language, newSpell.Contents, newSpell.Description, newSpell.Tags)
-	spell, err := spellbook.CreateSpell(newSpell)
+	spell, err := spellbook.CreateSpell(*newSpell)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
-		return
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	c.JSON(http.StatusCreated, spell)
+	return c.JSON(http.StatusCreated, spell)
 }
 
 func createSpellCli(c *cobra.Command, args []string) {
