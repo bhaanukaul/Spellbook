@@ -3,8 +3,6 @@ package Spellbook
 import (
 	"Spellbook/internal/Utils"
 
-	"log"
-
 	"github.com/blevesearch/bleve/v2"
 	"github.com/google/uuid"
 )
@@ -36,31 +34,42 @@ func (s *Spellbook) CreateSpell(spell Spell) (Spell, error) {
 	}
 	// db.Table(tableName).Create(&newSpell)
 	s.Index.Index(newSpell.ID, newSpell)
-	return newSpell, nil
-}
+	results, err := s.GetSpellByID(id)
+	if err != nil {
+		Utils.Error("Error searching index.", err)
+	}
+	s.Index.Close()
 
-func (s *Spellbook) GetAllSpells() (*bleve.SearchResult, error) {
-
-	log.Print("Getting spells")
-	query := bleve.NewMatchAllQuery()
-	search := bleve.NewSearchRequest(query)
-	search.Fields = []string{"*"}
-	results, _ := s.Index.Search(search)
 	return results, nil
 }
 
-func (s *Spellbook) GetSearchRange(from int, to int) (*bleve.SearchResult, error) {
-	log.Printf("Getting %d spells", to)
+func (s *Spellbook) GetAllSpells() ([]Spell, error) {
+	query := bleve.NewMatchAllQuery()
+	search := bleve.NewSearchRequest(query)
+	search.Fields = []string{"*"}
+	results, err := s.Index.Search(search)
+	if err != nil {
+		Utils.Error("Error searching index.", err)
+	}
+	s.Index.Close()
+	return bleveResultsToSpell(results), nil
+}
+
+func (s *Spellbook) GetSearchRange(from int, to int) ([]Spell, error) {
 	query := bleve.NewMatchAllQuery()
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
 	search.From = from
 	search.Size = to
-	results, _ := s.Index.Search(search)
-	return results, nil
+	results, err := s.Index.Search(search)
+	if err != nil {
+		Utils.Error("Error searching index.", err)
+	}
+	s.Index.Close()
+	return bleveResultsToSpell(results), nil
 }
 
-func (s *Spellbook) FindSpellsByDescription(description string, result_size int) (*bleve.SearchResult, error) {
+func (s *Spellbook) FindSpellsByDescription(description string, result_size int) ([]Spell, error) {
 	query := bleve.NewPhraseQuery([]string{description}, "description")
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
@@ -69,11 +78,12 @@ func (s *Spellbook) FindSpellsByDescription(description string, result_size int)
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
+	s.Index.Close()
 
-	return results, nil
+	return bleveResultsToSpell(results), nil
 }
 
-func (s *Spellbook) FindSpellsByTag(tag string, result_size int) (*bleve.SearchResult, error) {
+func (s *Spellbook) FindSpellsByTag(tag string, result_size int) ([]Spell, error) {
 	query := bleve.NewPhraseQuery([]string{tag}, "tags")
 	search := bleve.NewSearchRequest(query)
 	search.Fields = []string{"*"}
@@ -82,11 +92,12 @@ func (s *Spellbook) FindSpellsByTag(tag string, result_size int) (*bleve.SearchR
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
+	s.Index.Close()
 
-	return results, nil
+	return bleveResultsToSpell(results), nil
 }
 
-func (s *Spellbook) GetSpellByID(spell_id string) (*bleve.SearchResult, error) {
+func (s *Spellbook) GetSpellByID(spell_id string) (Spell, error) {
 	query := bleve.NewDocIDQuery([]string{spell_id})
 	search := bleve.NewSearchRequest(query)
 	// search.Fields = []string{"tags"}
@@ -95,8 +106,12 @@ func (s *Spellbook) GetSpellByID(spell_id string) (*bleve.SearchResult, error) {
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
-
-	return results, nil
+	s.Index.Close()
+	spell := bleveResultsToSpell(results)
+	if len(spell) == 0 {
+		return Spell{}, nil
+	}
+	return spell[0], nil
 }
 
 func (s *Spellbook) UpdateSpell(spell_id string, updatedSpell Spell) (Spell, error) {
@@ -106,5 +121,26 @@ func (s *Spellbook) UpdateSpell(spell_id string, updatedSpell Spell) (Spell, err
 	if err != nil {
 		Utils.Error("Error getting document from index.", err)
 	}
-	return updatedSpell, nil
+	result, err := s.GetSpellByID(spell_id)
+
+	if err != nil {
+		Utils.Error("Error getting document from index.", err)
+	}
+	return result, nil
+}
+
+func bleveResultsToSpell(results *bleve.SearchResult) []Spell {
+	var spells []Spell
+	for _, doc := range results.Hits {
+		spell := Spell{
+			ID:          doc.Fields["id"].(string),
+			Description: doc.Fields["description"].(string),
+			Language:    doc.Fields["language"].(string),
+			Contents:    doc.Fields["contents"].(string),
+			Tags:        doc.Fields["tags"].(string),
+			Author:      doc.Fields["author"].(string),
+		}
+		spells = append(spells, spell)
+	}
+	return spells
 }

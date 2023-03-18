@@ -59,6 +59,7 @@ func initConfig() {
 			log.Fatalf("Error opening bleve index: %#v", err)
 			os.Exit(1)
 		}
+		log.Print("Bleve index exists.")
 		spellbook.Index = index
 	}
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,6 +18,7 @@ var (
 	contents       string
 	tags           string
 	language       string
+	id             string
 	limit          int
 	server_port    string
 	server_address string
@@ -52,9 +54,8 @@ var (
 	}
 
 	getAllSpellsCmd = &cobra.Command{
-		Use:  "all",
-		Args: cobra.ExactArgs(1),
-		Run:  getAllSpellsCli,
+		Use: "all",
+		Run: getAllSpellsCli,
 	}
 
 	getSpellsByDescriptionCmd = &cobra.Command{
@@ -78,7 +79,16 @@ func init() {
 	createSpellCmd.MarkFlagRequired("description")
 	createSpellCmd.MarkFlagRequired("contents")
 	createSpellCmd.MarkFlagRequired("tags")
+
 	getSpellCmd.Flags().IntVarP(&limit, "limit", "l", Constants.SearchResultLimit, "Limit of search results")
+
+	updateSpellCmd.Flags().StringVarP(&description, "description", "d", "", "Description of the spell")
+	updateSpellCmd.Flags().StringVarP(&contents, "contents", "c", "", "Contents of the spell")
+	updateSpellCmd.Flags().StringVarP(&tags, "tags", "t", "", "Tags for the spell")
+	updateSpellCmd.Flags().StringVarP(&language, "language", "l", "", "Language of the spell")
+	updateSpellCmd.Flags().StringVar(&id, "id", "", "Id of the spell")
+	updateSpellCmd.MarkFlagRequired("id")
+
 	rootCmd.Flags().StringVarP(&bleve_index, "index", "i", "", "Bleve index file name")
 
 	getSpellCmd.AddCommand(getAllSpellsCmd)
@@ -104,7 +114,6 @@ func init() {
 
 func initBleveIndex(c *cobra.Command, args []string) {
 	mapping := bleve.NewIndexMapping()
-	log.Printf("fasdfsffsafvs")
 	index_name := viper.GetString("BLEVE_INDEX")
 	_, err := bleve.New(index_name, mapping)
 	if err != nil {
@@ -116,18 +125,18 @@ func startServer(c *cobra.Command, args []string) {
 
 	router := echo.New()
 
+	keyAuth := middleware.KeyAuth(func(key string, c echo.Context) (bool, error) {
+		return key == viper.GetString("SERVER_SECRET"), nil
+	})
+
 	api := router.Group("/api")
 	{
 		api.GET("/spell/:id", getSpellApi)
 		api.GET("/spells", getSpellsApi)
-		api.POST("/spell", createSpellApi)
-		api.PATCH("/spell/:id", updateSpellApi)
-		// api.POST("/spellbook", AddRemoteSpellbookApi)
-		// api.GET("/spellbooks", GetAllSpellbooks)
+		api.POST("/spell", createSpellApi, keyAuth)
+		api.PATCH("/spell/:id", updateSpellApi, keyAuth)
 	}
 	router.GET("/ping", ping)
-	// configFile := GetServerConfig()
-	// port := Utils.GetKVFromConfig(configFile, "http_port", "server")
 
 	router.Logger.Fatal(router.Start(fmt.Sprintf("%s:%s", viper.GetString("SERVER_ADDRESS"), viper.GetString("SERVER_PORT"))))
 }
