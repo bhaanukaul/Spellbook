@@ -50,7 +50,6 @@ var (
 
 	getSpellCmd = &cobra.Command{
 		Use: "find",
-		Run: getSpellCli,
 	}
 
 	getAllSpellsCmd = &cobra.Command{
@@ -67,7 +66,13 @@ var (
 	getSpellByTagCmd = &cobra.Command{
 		Use:  "by-tag",
 		Args: cobra.ExactArgs(1),
-		Run:  getAllSpellsCli,
+		Run:  getSpellsByTagCli,
+	}
+
+	getSpellByIdCmd = &cobra.Command{
+		Use:  "id",
+		Args: cobra.ExactArgs(1),
+		Run:  getSpellCli,
 	}
 )
 
@@ -80,7 +85,7 @@ func init() {
 	createSpellCmd.MarkFlagRequired("contents")
 	createSpellCmd.MarkFlagRequired("tags")
 
-	getSpellCmd.Flags().IntVarP(&limit, "limit", "l", Constants.SearchResultLimit, "Limit of search results")
+	getSpellCmd.PersistentFlags().IntVarP(&limit, "limit", "l", Constants.SearchResultLimit, "Limit of search results")
 
 	updateSpellCmd.Flags().StringVarP(&description, "description", "d", "", "Description of the spell")
 	updateSpellCmd.Flags().StringVarP(&contents, "contents", "c", "", "Contents of the spell")
@@ -94,6 +99,7 @@ func init() {
 	getSpellCmd.AddCommand(getAllSpellsCmd)
 	getSpellCmd.AddCommand(getSpellsByDescriptionCmd)
 	getSpellCmd.AddCommand(getSpellByTagCmd)
+	getSpellCmd.AddCommand(getSpellByIdCmd)
 
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.AddCommand(initCmd)
@@ -139,6 +145,8 @@ func startServer(c *cobra.Command, args []string) {
 	router.GET("/ping", ping)
 
 	router.Logger.Fatal(router.Start(fmt.Sprintf("%s:%s", viper.GetString("SERVER_ADDRESS"), viper.GetString("SERVER_PORT"))))
+	defer spellbook.Index.Close()
+
 }
 
 func ping(c echo.Context) error {

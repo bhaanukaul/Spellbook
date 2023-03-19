@@ -28,6 +28,7 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	defer spellbook.Index.Close()
 }
 
 func init() {
@@ -51,7 +52,7 @@ func initConfig() {
 	index_file := viper.GetString("BLEVE_INDEX")
 	log.Printf("bleve index: %s", index_file)
 	if !Utils.FileExists(index_file) {
-		log.Printf("No bleve index, creating one: %s", index_file)
+		log.Print("No bleve index, create one using: spellbook init")
 		// return
 	} else {
 		index, err := bleve.Open(index_file)
@@ -62,5 +63,4 @@ func initConfig() {
 		log.Print("Bleve index exists.")
 		spellbook.Index = index
 	}
-
 }

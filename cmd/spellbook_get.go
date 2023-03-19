@@ -57,7 +57,6 @@ Get Alls spells, no search parameters
 func getAllSpellsCli(c *cobra.Command, args []string) {
 	log.Print("Getting all spells")
 	tbl := Utils.GenerateTableHeader()
-	tbl.Print()
 	results, err := spellbook.GetAllSpells()
 	for _, result := range results {
 		tbl.AddRow(result.ID, result.Description, result.Contents, result.Language, result.Tags)
@@ -73,6 +72,7 @@ func getAllSpells(limit int) ([]Spellbook.Spell, error) {
 	if err != nil {
 		return results, err
 	}
+
 	return results, nil
 }
 
@@ -81,11 +81,27 @@ Get spells by tag
 */
 
 func getSpellsByTag(tag string, limit int) ([]Spellbook.Spell, error) {
+	log.Printf("search by tag: %s", tag)
+
 	results, err := spellbook.FindSpellsByTag(tag, limit)
 	if err != nil {
 		return results, err
 	}
 	return results, nil
+}
+
+func getSpellsByTagCli(c *cobra.Command, args []string) {
+	tbl := Utils.GenerateTableHeader()
+	limit, _ := c.Flags().GetInt("limit")
+	log.Printf("cli search by tag: %s with limit: %d", args[0], limit)
+	results, err := getSpellsByTag(args[0], limit)
+	if err != nil {
+		log.Fatalf("Failed to get spells: %#v", err)
+	}
+	for _, result := range results {
+		tbl.AddRow(result.ID, result.Description, result.Contents, result.Language, result.Tags)
+	}
+	tbl.Print()
 }
 
 /*

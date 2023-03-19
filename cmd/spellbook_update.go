@@ -13,12 +13,13 @@ import (
 
 func updateSpellApi(c echo.Context) error {
 	spellToUpdate := new(Spellbook.Spell)
+	spellID := c.Param("id")
 	if err := c.Bind(spellToUpdate); err != nil {
 		return c.JSON(http.StatusBadRequest, "Invalid Request Body")
 	}
 
 	log.Printf("From POST CreateSpell: %s, %s, %s, %s", spellToUpdate.Language, spellToUpdate.Contents, spellToUpdate.Description, spellToUpdate.Tags)
-	spell, err := spellbook.UpdateSpell(spellToUpdate.ID, *spellToUpdate)
+	spell, err := spellbook.UpdateSpell(spellID, *spellToUpdate)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
@@ -71,5 +72,6 @@ func updateSpell(spell_id string, contents string, description string, language 
 	if err != nil {
 		return result, fmt.Errorf("error creating spell: %#v", err)
 	}
+
 	return result, nil
 }

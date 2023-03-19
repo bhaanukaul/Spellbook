@@ -38,7 +38,6 @@ func (s *Spellbook) CreateSpell(spell Spell) (Spell, error) {
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
-	s.Index.Close()
 
 	return results, nil
 }
@@ -51,7 +50,6 @@ func (s *Spellbook) GetAllSpells() ([]Spell, error) {
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
-	s.Index.Close()
 	return bleveResultsToSpell(results), nil
 }
 
@@ -65,7 +63,6 @@ func (s *Spellbook) GetSearchRange(from int, to int) ([]Spell, error) {
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
-	s.Index.Close()
 	return bleveResultsToSpell(results), nil
 }
 
@@ -78,7 +75,6 @@ func (s *Spellbook) FindSpellsByDescription(description string, result_size int)
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
-	s.Index.Close()
 
 	return bleveResultsToSpell(results), nil
 }
@@ -92,7 +88,6 @@ func (s *Spellbook) FindSpellsByTag(tag string, result_size int) ([]Spell, error
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
-	s.Index.Close()
 
 	return bleveResultsToSpell(results), nil
 }
@@ -106,7 +101,6 @@ func (s *Spellbook) GetSpellByID(spell_id string) (Spell, error) {
 	if err != nil {
 		Utils.Error("Error searching index.", err)
 	}
-	s.Index.Close()
 	spell := bleveResultsToSpell(results)
 	if len(spell) == 0 {
 		return Spell{}, nil
