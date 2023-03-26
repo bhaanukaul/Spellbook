@@ -3,6 +3,8 @@
 all: test build
 
 test:
+	go test
+	rm -rf ./spellbook_test/
 
 build: build-linux build-darwin build-darwin-arm build-win
 build-linux:
@@ -24,3 +26,6 @@ build-win:
 run-darwin-arm-server: build-darwin-arm
 	mv bin/spellbook-darwin-arm ./spellbook
 	./spellbook server start
+
+run-darwin-arm-cli: build-darwin-arm
+	mv bin/spellbook-darwin-arm ./spellbook
