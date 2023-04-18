@@ -4,7 +4,6 @@ import (
 	"Spellbook/internal/Constants"
 	"Spellbook/internal/Spellbook"
 	"Spellbook/internal/Utils"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -19,7 +18,7 @@ Get individual spell
 
 */
 
-func getSpell(id string) Spellbook.Spell {
+func getSpell(id string) *Spellbook.Spell {
 	result, err := spellbook.GetSpellByID(id)
 
 	if err != nil {
@@ -32,18 +31,18 @@ func getSpellApi(c echo.Context) error {
 	spell_id := c.Param("id")
 	result := getSpell(spell_id)
 
-	if result == (Spellbook.Spell{}) {
+	if result == (&Spellbook.Spell{}) {
 		return c.JSON(http.StatusNotFound, "Spell Not Found")
 	}
 	return c.JSON(http.StatusOK, result)
 }
 
 func getSpellCli(c *cobra.Command, args []string) {
-	log.Printf("Getting id: %s", args[0])
+	sugar.Debugf("Getting id: %s", args[0])
 	spell_id := args[0]
 	result := getSpell(spell_id)
 	tbl := Utils.GenerateTableHeader()
-	if result != (Spellbook.Spell{}) {
+	if result != (&Spellbook.Spell{}) {
 		tbl.AddRow(result.ID, result.Description, result.Contents, result.Language, result.Tags)
 	}
 	tbl.Print()
@@ -55,7 +54,7 @@ Get Alls spells, no search parameters
 */
 
 func getAllSpellsCli(c *cobra.Command, args []string) {
-	log.Print("Getting all spells")
+	sugar.Debug("Getting all spells")
 	tbl := Utils.GenerateTableHeader()
 	results, err := spellbook.GetAllSpells()
 	for _, result := range results {
@@ -81,7 +80,7 @@ Get spells by tag
 */
 
 func getSpellsByTag(tag string, limit int) ([]Spellbook.Spell, error) {
-	log.Printf("search by tag: %s", tag)
+	sugar.Debugf("search by tag: %s", tag)
 
 	results, err := spellbook.FindSpellsByTag(tag, limit)
 	if err != nil {
@@ -93,7 +92,7 @@ func getSpellsByTag(tag string, limit int) ([]Spellbook.Spell, error) {
 func getSpellsByTagCli(c *cobra.Command, args []string) {
 	tbl := Utils.GenerateTableHeader()
 	limit, _ := c.Flags().GetInt("limit")
-	log.Printf("cli search by tag: %s with limit: %d", args[0], limit)
+	sugar.Debugf("cli search by tag: %s with limit: %d", args[0], limit)
 	results, err := getSpellsByTag(args[0], limit)
 	if err != nil {
 		log.Fatalf("Failed to get spells: %#v", err)
@@ -142,18 +141,18 @@ func getSpellsApi(c echo.Context) error {
 	} else {
 		limit = Constants.SearchResultLimit
 	}
-	log.Printf("Query params: %s, %s", qf, qfv)
+	sugar.Debugf("Query params: %s, %s", qf, qfv)
 	var results []Spellbook.Spell
 	var err error
 	if qf != "" && qfv != "" {
-		log.Printf("Using query parameters %s, %s", qf, qfv)
+		sugar.Debugf("Using query parameters %s, %s", qf, qfv)
 		if qf == "tags" {
 			results, err = getSpellsByTag(qfv, limit)
 		} else if qf == "description" {
 			results, err = getSpellsByDescription(qfv, limit)
 		}
 		if err != nil {
-			Utils.Error(fmt.Sprintf("Error searching %s for %s", qf, qfv), err)
+			sugar.Errorf("Error searching %s for %s", qf, qfv, err)
 			c.JSON(http.StatusInternalServerError, err)
 		}
 
@@ -161,7 +160,7 @@ func getSpellsApi(c echo.Context) error {
 	}
 	results, err = getAllSpells(limit)
 	if err != nil {
-		Utils.Error(fmt.Sprintf("Error searching %s for %s", qf, qfv), err)
+		sugar.Errorf("Error searching %s for %s", qf, qfv, err)
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, results)

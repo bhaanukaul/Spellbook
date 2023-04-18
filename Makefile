@@ -6,7 +6,9 @@ test:
 	go test
 	rm -rf ./spellbook_test/
 
-build: build-linux build-darwin build-darwin-arm build-win
+# build: build-linux build-darwin build-darwin-arm build-win
+build: build-darwin-arm
+
 build-linux:
 	GOOS=linux GOARCH=amd64 go build \
 		-o bin/spellbook-linux *.go

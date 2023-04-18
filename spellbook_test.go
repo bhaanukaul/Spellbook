@@ -194,7 +194,7 @@ func TestUpdateSpell(t *testing.T) {
 		t.Errorf("error getting spells: %#v", err)
 	}
 	spell.Language = "shell"
-	updatedSpell, err := spellbook.UpdateSpell("2", spell)
+	updatedSpell, err := spellbook.UpdateSpell("2", *spell)
 	if err != nil {
 		t.Errorf("error getting spells: %#v", err)
 	}

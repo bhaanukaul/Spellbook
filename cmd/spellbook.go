@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"Spellbook/internal/Constants"
+	"Spellbook/internal/Utils"
 	"fmt"
 	"log"
 	"net/http"
@@ -26,13 +27,15 @@ var (
 	bleve_index    string
 
 	updateSpellCmd = &cobra.Command{
-		Use: "update",
-		Run: updateSpellCli,
+		Use:              "update",
+		Run:              updateSpellCli,
+		PersistentPreRun: spellbookPreRun,
 	}
 
 	createSpellCmd = &cobra.Command{
-		Use: "create",
-		Run: createSpellCli,
+		Use:              "create",
+		Run:              createSpellCli,
+		PersistentPreRun: spellbookPreRun,
 	}
 
 	serverCmd = &cobra.Command{
@@ -50,7 +53,8 @@ var (
 	}
 
 	getSpellCmd = &cobra.Command{
-		Use: "find",
+		Use:              "find",
+		PersistentPreRun: spellbookPreRun,
 	}
 
 	getAllSpellsCmd = &cobra.Command{
@@ -212,4 +216,20 @@ func startServer(c *cobra.Command, args []string) {
 
 func ping(c echo.Context) error {
 	return c.String(http.StatusOK, "pong!")
+}
+
+func spellbookPreRun(cmd *cobra.Command, args []string) {
+	index_file := viper.GetString("BLEVE_INDEX")
+	sugar.Infof("bleve index: %s", index_file)
+	if !Utils.FileExists(index_file) {
+		fmt.Println("No bleve index, create one using: spellbook init")
+		os.Exit(1)
+	} else {
+		index, err := bleve.Open(index_file)
+		if err != nil {
+			sugar.Fatalf("Error opening bleve index: %#v", err)
+		}
+		sugar.Info("Bleve index exists.")
+		spellbook.Index = index
+	}
 }

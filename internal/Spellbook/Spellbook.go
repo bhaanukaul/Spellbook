@@ -1,10 +1,10 @@
 package Spellbook
 
 import (
-	"Spellbook/internal/Utils"
+	"fmt"
+	"strconv"
 
 	"github.com/blevesearch/bleve/v2"
-	"github.com/google/uuid"
 )
 
 type Spell struct {
@@ -21,22 +21,25 @@ type Spellbook struct {
 	Index bleve.Index
 }
 
-func (s *Spellbook) CreateSpell(spell Spell) (Spell, error) {
+func (s *Spellbook) CreateSpell(spell Spell) (*Spell, error) {
 	var id string
-	if spell.ID == "" {
-		id = uuid.New().String()
-	} else {
-		id = spell.ID
+	doc_count, err := s.Index.DocCount()
+	if err != nil {
+		return nil, fmt.Errorf("error searching index: %#v", err)
 	}
+
+	doc_count += 1
+	id = strconv.Itoa(int(doc_count))
 	newSpell := Spell{
-		ID: id, Language: spell.Language, Contents: spell.Contents, Description: spell.Description, Author: spell.Author,
+		ID:       id,
+		Language: spell.Language, Contents: spell.Contents, Description: spell.Description, Author: spell.Author,
 		Tags: spell.Tags,
 	}
 	// db.Table(tableName).Create(&newSpell)
 	s.Index.Index(newSpell.ID, newSpell)
 	results, err := s.GetSpellByID(id)
 	if err != nil {
-		Utils.Error("Error searching index.", err)
+		return nil, fmt.Errorf("error searching index: %#v", err)
 	}
 
 	return results, nil
@@ -48,7 +51,7 @@ func (s *Spellbook) GetAllSpells() ([]Spell, error) {
 	search.Fields = []string{"*"}
 	results, err := s.Index.Search(search)
 	if err != nil {
-		Utils.Error("Error searching index.", err)
+		return nil, fmt.Errorf("error searching index: %#v", err)
 	}
 	return bleveResultsToSpell(results), nil
 }
@@ -61,7 +64,7 @@ func (s *Spellbook) GetSearchRange(from int, to int) ([]Spell, error) {
 	search.Size = to
 	results, err := s.Index.Search(search)
 	if err != nil {
-		Utils.Error("Error searching index.", err)
+		return nil, fmt.Errorf("error searching index: %#v", err)
 	}
 	return bleveResultsToSpell(results), nil
 }
@@ -73,7 +76,7 @@ func (s *Spellbook) FindSpellsByDescription(description string, result_size int)
 	search.Size = result_size
 	results, err := s.Index.Search(search)
 	if err != nil {
-		Utils.Error("Error searching index.", err)
+		return nil, fmt.Errorf("error searching index: %#v", err)
 	}
 
 	return bleveResultsToSpell(results), nil
@@ -86,39 +89,39 @@ func (s *Spellbook) FindSpellsByTag(tag string, result_size int) ([]Spell, error
 	search.Size = result_size
 	results, err := s.Index.Search(search)
 	if err != nil {
-		Utils.Error("Error searching index.", err)
+		return nil, fmt.Errorf("error searching index: %#v", err)
 	}
 
 	return bleveResultsToSpell(results), nil
 }
 
-func (s *Spellbook) GetSpellByID(spell_id string) (Spell, error) {
+func (s *Spellbook) GetSpellByID(spell_id string) (*Spell, error) {
 	query := bleve.NewDocIDQuery([]string{spell_id})
 	search := bleve.NewSearchRequest(query)
 	// search.Fields = []string{"tags"}
 	search.Fields = []string{"*"}
 	results, err := s.Index.Search(search)
 	if err != nil {
-		Utils.Error("Error searching index.", err)
+		return nil, fmt.Errorf("error searching index: %#v", err)
 	}
 	spell := bleveResultsToSpell(results)
 	if len(spell) == 0 {
-		return Spell{}, nil
+		return &Spell{}, nil
 	}
-	return spell[0], nil
+	return &spell[0], nil
 }
 
-func (s *Spellbook) UpdateSpell(spell_id string, updatedSpell Spell) (Spell, error) {
+func (s *Spellbook) UpdateSpell(spell_id string, updatedSpell Spell) (*Spell, error) {
 
 	err := s.Index.Index(spell_id, updatedSpell)
 
 	if err != nil {
-		Utils.Error("Error getting document from index.", err)
+		return nil, fmt.Errorf("error searching index: %#v", err)
 	}
 	result, err := s.GetSpellByID(spell_id)
 
 	if err != nil {
-		Utils.Error("Error getting document from index.", err)
+		return nil, fmt.Errorf("error searching index: %#v", err)
 	}
 	return result, nil
 }
