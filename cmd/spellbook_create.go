@@ -62,6 +62,7 @@ func createSpell(contents string, description string, language string, tags stri
 	spellToCreate := Spellbook.Spell{
 		Description: description, Language: language, Contents: contents, Tags: tags,
 	}
+	sugar.Infof("From POST CreateSpell: %s, %s, %s, %s", language, contents, description, tags)
 	spell, err := spellbook.CreateSpell(spellToCreate)
 	if err != nil {
 		return nil, fmt.Errorf("error creating spell: %#v", err)
